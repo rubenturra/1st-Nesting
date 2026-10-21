@@ -103,6 +103,14 @@ These folders are initially placeholders; the updater fills the matching folder 
 
 Dimensions can be displayed in millimetres or inches. Geometry and job data use millimetres internally.
 
+Nesting results use ordinary tree folders so each placed `Part::Feature` can be selected
+individually in CAM's **New Job** dialog. This also applies to joined bridge networks.
+Multiple sheets retain their displayed positions in CAD and DXF exports; the bridge
+editor continues to use sheet-local millimetre geometry. Select the manufactured parts
+for machining, excluding stock borders, offcut outlines and the unplaced preview.
+Restart FreeCAD and run nesting again to generate the new structure; existing saved
+FCStd documents retain their original structure.
+
 ## Engine updates
 
 Open Settings and press **Check for updates** in the CLI-nesting row below Batch size.

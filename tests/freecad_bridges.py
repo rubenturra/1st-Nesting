@@ -156,8 +156,10 @@ class BridgeTests(unittest.TestCase):
         self.assertEqual(len(merged.Wires),2)
         layout=example(second_sheet=True)
         doc=create_document(layout,languages.tr)
-        self.assertEqual(doc.SheetGroup_1.Placement.Base.x,140)
-        self.assertEqual(doc.Part_2.Shape.BoundBox.XMin,35)
+        self.assertEqual(doc.SheetGroup_1.DisplayOffset.x,140)
+        self.assertEqual(doc.Part_2.Shape.BoundBox.XMin,175)
+        from Nesting1stResultGroups import sheet_local_shape
+        self.assertEqual(sheet_local_shape(doc.Part_2).BoundBox.XMin,35)
 
     def test_closed_input_rings_and_reversed_winding(self):
         original=example();data=copy.deepcopy(original.data)

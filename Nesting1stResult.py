@@ -33,6 +33,7 @@ import math
 import os
 import subprocess
 import traceback
+from Nesting1stResultGroups import create_sheet_group, add_to_sheet_group
 
 
 try:
@@ -735,10 +736,9 @@ class NestingResultImporter(object):
                 )
 
                 if sheet_object:
-                    group = self.result_doc.addObject("App::Part", "SheetGroup_%d" % index)
-                    group.Label = tr('sheet_d') % (index + 1)
-                    group.addObject(sheet_object)
-                    group.Placement.Base = App.Vector(display_x, 0, 0)
+                    group = create_sheet_group(self.result_doc, "SheetGroup_%d" % index,
+                                               tr('sheet_d') % (index + 1), display_x)
+                    add_to_sheet_group(group, sheet_object)
                     display_x += sheet_object.Shape.BoundBox.XLength + 50.0
                     max_sheet_y = max(max_sheet_y, sheet_object.Shape.BoundBox.YMax)
                     self.sheet_groups[index] = group
@@ -972,7 +972,7 @@ class NestingResultImporter(object):
                     obj = self.result_doc.getObject(self._result_object_name(placement))
                     group = self.sheet_groups.get(int(placement.get("sheet_instance_index", 0)))
                     if group is not None and obj is not None:
-                        group.addObject(obj)
+                        add_to_sheet_group(group, obj)
                     imported_count += 1
 
             except Exception:
@@ -1409,7 +1409,7 @@ class NestingResultImporter(object):
         except Exception:
             return None
 
-    # Build the "Result info" App::Part holding one text line per summary value.
+    # Build the result information folder holding one text line per summary value.
     def _create_result_info(self):
         from Nesting1stReusableOffcut import offcut_text
         values = self._result_summary_values()
@@ -1429,7 +1429,7 @@ class NestingResultImporter(object):
             start_x = 100.0
         start_y = self._sheet_max_y if self._sheet_max_y > 0.0 else 200.0
 
-        group = self.result_doc.addObject("App::Part", "Result_info")
+        group = self.result_doc.addObject("App::DocumentObjectGroup", "Result_info")
         group.Label = tr('result_info')
 
         x = start_x + font_size
@@ -1501,7 +1501,7 @@ class NestingResultImporter(object):
         label_offset = font_size * 1.6
         margin_y = max(50.0, font_size * 2.0)
 
-        group = self.result_doc.addObject("App::Part", "Unplaced_parts")
+        group = self.result_doc.addObject("App::DocumentObjectGroup", "Unplaced_parts")
         group.Label = tr('unplaced_parts')
 
         label = self._make_annotation(

@@ -1,6 +1,7 @@
 """Display the CLI's largest connected reusable offcut; all geometry is in mm."""
 import math
 from Nesting1stResultSVG import _ring, _shape_area
+from Nesting1stResultGroups import add_to_sheet_group
 
 
 def reusable_offcut(data):
@@ -77,7 +78,7 @@ def create_offcut_outline(importer, translate):
     obj.addProperty('App::PropertyFloat', 'SheetPercentage', 'Offcut', 'Percentage of this sheet').SheetPercentage = report['percentage']
     for name in ('ReusableArea', 'MinimumWidth', 'SheetPercentage'):
         obj.setEditorMode(name, 1)
-    group.addObject(obj)
+    add_to_sheet_group(group, obj)
     if getattr(App, 'GuiUp', False):
         obj.ViewObject.DisplayMode = 'Wireframe'
         obj.ViewObject.LineColor = (0.0, 0.65, 0.4)

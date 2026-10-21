@@ -5,6 +5,7 @@ import math
 import FreeCAD as App
 import Part
 from Nesting1stResultSVG import _ring, _transform
+from Nesting1stResultGroups import create_sheet_group, add_to_sheet_group, sheet_local_shape
 
 MM_PER_INCH = 25.4
 TOLERANCE = 1e-6
@@ -323,7 +324,7 @@ def load_result(panel):
             obj = document.getObject(name)
             if obj is None or not hasattr(obj, 'Shape') or obj.Shape.isNull():
                 raise BridgeError('no_result')
-            shapes[index] = obj.Shape.copy()
+            shapes[index] = sheet_local_shape(obj)
         index += 1
     layout = BridgeLayout(data, shapes)
     if bridge_metadata:
@@ -366,13 +367,12 @@ def create_document(layout, translate):
         offset = 0.0
         for sheet in layout.sheets:
             sheet_id = sheet['index']
-            group = document.addObject('App::Part', 'SheetGroup_%d' % sheet_id)
-            group.Label = str(translate('sheet_d')) % (sheet_id+1)
-            group.Placement.Base = App.Vector(offset, 0, 0)
+            group = create_sheet_group(document, 'SheetGroup_%d' % sheet_id,
+                                       str(translate('sheet_d')) % (sheet_id+1), offset)
             offset += sheet['face'].BoundBox.XLength + 50
             border = document.addObject('Part::Feature', 'Sheet_%d' % sheet_id)
             border.Shape = Part.makeCompound(sheet['face'].Wires)
-            group.addObject(border)
+            add_to_sheet_group(group, border)
             for component, shape in components:
                 if component['sheet'] != sheet_id:
                     continue
@@ -389,7 +389,7 @@ def create_document(layout, translate):
                 obj.SourceLabels = [part['label'] for part in component['parts']]
                 obj.addProperty('App::PropertyIntegerList', 'BridgeIds', '1st Nesting')
                 obj.BridgeIds = [bridge['id'] for bridge in component['bridges']]
-                group.addObject(obj)
+                add_to_sheet_group(group, obj)
                 if App.GuiUp:
                     style_component(obj.ViewObject, first['index'])
         document.recompute()
