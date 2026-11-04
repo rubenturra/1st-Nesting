@@ -145,6 +145,8 @@ Use **Mark selected part holes** to choose inner contours available for nesting.
 
 ## Sheets and offcuts
 
+The panel has two tabs: **Nesting** (sheets, parts and the run buttons) and **Setup** (units, Nesting CLI search/GPU settings and CPU cores).
+
 Add rectangular sheets with dimensions and quantities, or import irregular stock from DXF. Adding identical stock increases its available quantity. Use **Edit** for sheet boundaries, holes and grain direction, and **Remove** to delete stock rows. Optionally give each sheet a thickness and material: parts of another thickness then block nesting, and **Offcut library…** lists saved DXF offcuts filtered by thickness ([details](docs/SHEET_THICKNESS.md)). The list is kept as a sheet stock between sessions ([details](docs/SHEET_STOCK.md)).
 
 Stock geometry is exported in its local coordinates. Moving a preview sheet changes its display position without changing its usable boundary. Grain X/Y refers to the sheet's local axes. Sheet holes can use the standard part spacing or a custom hole-to-part clearance.

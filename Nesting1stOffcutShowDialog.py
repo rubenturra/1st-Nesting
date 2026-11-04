@@ -12,7 +12,8 @@ import os
 
 from Nesting1stAddSheet import AddSheetOrOffcutDialog
 from Nesting1stOffcuts import (extract_offcut_from_dxf,add_or_increment_material,polygon_area)
-from Nesting1stSheetSpec import material_thickness, material_name, spec_suffix
+from Nesting1stSheetSpec import (material_thickness, material_name, spec_suffix,
+                                 material_suffix, format_number)
 
 import FreeCAD as App
 from PySide import QtGui, QtCore
@@ -2064,6 +2065,45 @@ class OffcutMaterialsController(object):
                 + traceback.format_exc()
             )
             
+    # Thickness in the panel units without the unit, or empty when not set.
+    def _thickness_cell_text(self, material):
+        thickness = material_thickness(material)
+        if not thickness:
+            return ""
+        units = str(getattr(self.panel, "display_units", "mm") or "mm").lower()
+        return format_number(thickness / MM_PER_INCH if units == "inch" else thickness)
+
+    # Store an edited thickness (panel units; empty or 0 clears it).
+    def _on_thickness_edited(self, item):
+        row = item.row()
+        if row < 0 or row >= len(self.offcuts):
+            return
+        material = self.offcuts[row]
+        text = str(item.text() or "").strip().replace(",", ".")
+        try:
+            value = float(text) if text else 0.0
+            if value < 0.0 or value != value:
+                raise ValueError
+        except ValueError:
+            self._count_update_guard = True
+            try:
+                ui_call(item, 'setText', self._thickness_cell_text(material))
+            finally:
+                self._count_update_guard = False
+            return
+        units = str(getattr(self.panel, "display_units", "mm") or "mm").lower()
+        material["thickness"] = value * MM_PER_INCH if units == "inch" else value
+        self._count_update_guard = True
+        try:
+            ui_call(item, 'setText', self._thickness_cell_text(material))
+            label_item = self.offcuts_table.item(row, 0)
+            if label_item is not None:
+                label_item.setToolTip(self._format_material_base_label(material)
+                                      + spec_suffix(material, units))
+        finally:
+            self._count_update_guard = False
+        self.save_stock()
+
     # Safely restore or update a Count cell without triggering recursive Count processing.
     def _set_count_cell_text(self, item, value):
         """
@@ -2087,6 +2127,10 @@ class OffcutMaterialsController(object):
             return
 
         if item is None:
+            return
+
+        if item.column() == 4:
+            self._on_thickness_edited(item)
             return
 
         # Count is column 1.
@@ -2254,7 +2298,7 @@ class OffcutMaterialsController(object):
     # values are always stored in mm.
     def _format_material_label(self, material):
         units = str(getattr(self.panel, "display_units", "mm") or "mm").lower()
-        return self._format_material_base_label(material) + spec_suffix(material, units)
+        return self._format_material_base_label(material) + material_suffix(material)
 
     # Sheet dimensions or DXF name, without thickness/material.
     def _format_material_base_label(self, material):
@@ -2333,7 +2377,9 @@ class OffcutMaterialsController(object):
             )
 
             material_item = ui_widget(QtGui.QTableWidgetItem, label)
-            material_item.setToolTip(label)
+            units = str(getattr(self.panel, "display_units", "mm") or "mm").lower()
+            material_item.setToolTip(self._format_material_base_label(material)
+                                     + spec_suffix(material, units))
             material_item.setFlags(
                 QtCore.Qt.ItemIsEnabled |
                 QtCore.Qt.ItemIsSelectable
@@ -2422,6 +2468,20 @@ class OffcutMaterialsController(object):
 
             self.offcuts_table.setCellWidget(row, 3, move_widget)
 
+            # Column 4 (shown second): thickness, editable.
+            self._count_update_guard = True
+            try:
+                thickness_item = ui_widget(QtGui.QTableWidgetItem,
+                                           self._thickness_cell_text(material))
+                thickness_item.setFlags(QtCore.Qt.ItemIsEnabled
+                                        | QtCore.Qt.ItemIsSelectable
+                                        | QtCore.Qt.ItemIsEditable)
+                thickness_item.setTextAlignment(QtCore.Qt.AlignCenter)
+                ui_call(thickness_item, 'setToolTip', tr('sheet_spec.col_thickness_tooltip'))
+                self.offcuts_table.setItem(row, 4, thickness_item)
+            finally:
+                self._count_update_guard = False
+
         except Exception:
             App.Console.PrintError(
                 tr('append_offcut_table_row_failed')
@@ -2450,6 +2510,15 @@ class OffcutMaterialsController(object):
                         material
                     )
                 )
+
+                thickness_item = self.offcuts_table.item(row, 4)
+                if thickness_item is not None:
+                    self._count_update_guard = True
+                    try:
+                        ui_call(thickness_item, 'setText',
+                                self._thickness_cell_text(material))
+                    finally:
+                        self._count_update_guard = False
 
         except Exception:
             App.Console.PrintError(

@@ -664,5 +664,9 @@
   "offcut_library.no_folder": "Choose the folder where your offcuts are saved with \"Change…\".",
   "offcut_library.empty": "There are no DXF offcuts in this folder.",
   "offcut_library.none_with_thickness": "No offcuts with this thickness. Choose \"All\" to see the rest.",
-  "offcut_library.count_d_of_d": "%d of %d offcuts"
+  "offcut_library.count_d_of_d": "%d of %d offcuts",
+  "tab.nesting": "Nesting",
+  "tab.setup": "Setup",
+  "sheet_spec.col_thickness": "Thickness",
+  "sheet_spec.col_thickness_tooltip": "Sheet thickness in the panel units. Double-click to change it; leave empty if unknown."
 }

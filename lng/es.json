@@ -664,5 +664,9 @@
   "offcut_library.no_folder": "Elige con «Cambiar…» la carpeta donde se guardan tus retales.",
   "offcut_library.empty": "No hay retales DXF en esta carpeta.",
   "offcut_library.none_with_thickness": "No hay retales de este espesor. Elige «Todos» para ver el resto.",
-  "offcut_library.count_d_of_d": "%d de %d retales"
+  "offcut_library.count_d_of_d": "%d de %d retales",
+  "tab.nesting": "Anidado",
+  "tab.setup": "Setup",
+  "sheet_spec.col_thickness": "Espesor",
+  "sheet_spec.col_thickness_tooltip": "Espesor de la chapa en las unidades del panel. Haz doble clic para cambiarlo; déjalo vacío si no lo sabes."
 }

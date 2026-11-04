@@ -150,7 +150,7 @@ def ui_call(obj, method, *arguments):
     if not bindings and not _has_translation(arguments):
         return result
     identity = method
-    if method in ("setItemText", "setItemData"):
+    if method in ("setItemText", "setItemData", "setTabText", "setTabToolTip"):
         identity += ":" + str(arguments[0])
         if method == "setItemData" and len(arguments) > 2:
             identity += ":" + str(int(arguments[2]))

@@ -63,6 +63,12 @@ def spec_suffix(material, units="mm"):
     return "".join(" · " + part for part in parts)
 
 
+def material_suffix(material):
+    """Only the material name, e.g. ' · S275' (thickness has its own column)."""
+    name = material_name(material)
+    return " · " + name if name else ""
+
+
 def parse_offcut_filename(path):
     """Read thickness, date and area from names such as
     Retal_<doc>_<sheet>_e10mm_20261103-2215_1.90m2.dxf."""

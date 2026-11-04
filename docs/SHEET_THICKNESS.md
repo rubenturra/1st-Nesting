@@ -10,8 +10,10 @@ rectangular sheets and DXF offcuts. Both fields are optional:
   thickness; otherwise it repeats the last value used.
 - **Material** is free text with common suggestions (S235, S275, AISI 304…).
 
-The values appear after the stock name in the materials table and in the
-preview cards, for example `Sheet 2000 x 2000 mm · 10 mm · S275`. Stock with the
+The materials table has a **Thickness** column, shown after **Material**;
+double-click it to change or clear the thickness of stock already in the list.
+The material name follows the stock name (`Sheet 2000 x 2000 mm · S275`), and
+the preview cards and the Material tooltip show both (`… · 10 mm · S275`). Stock with the
 same dimensions but another thickness or material gets its own row.
 
 When a DXF name contains a thickness marker such as `_e10mm_`, that thickness is

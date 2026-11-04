@@ -284,8 +284,20 @@ class NestingTaskPanel:
         
         self.offcut_controller = OffcutMaterialsController(self)
 
+        # Two tabs: the nesting job and the Setup (units, CLI search, CPU).
         self.form = QtGui.QWidget()
-        self.layout = QtGui.QVBoxLayout(self.form)
+        form_layout = QtGui.QVBoxLayout(self.form)
+        form_layout.setContentsMargins(0, 0, 0, 0)
+        self.tabs = QtGui.QTabWidget()
+        form_layout.addWidget(self.tabs)
+        main_page = QtGui.QWidget()
+        self.layout = QtGui.QVBoxLayout(main_page)
+        setup_page = QtGui.QWidget()
+        self.setup_layout = QtGui.QVBoxLayout(setup_page)
+        self.tabs.addTab(main_page, "")
+        self.tabs.addTab(setup_page, "")
+        ui_call(self.tabs, 'setTabText', 0, tr('tab.nesting'))
+        ui_call(self.tabs, 'setTabText', 1, tr('tab.setup'))
 
         # NEW: two-column configuration area
         cfg = QtGui.QWidget()
@@ -326,13 +338,15 @@ class NestingTaskPanel:
         offcut_box = ui_widget(QtGui.QGroupBox, tr('sheet_offcut_materials'))
         offcut_lay = QtGui.QVBoxLayout(offcut_box)
 
-        self.offcuts_table = QtGui.QTableWidget(0, 4)
+        self.offcuts_table = QtGui.QTableWidget(0, 5)
         ui_call(self.offcuts_table, 'setHorizontalHeaderLabels', [
             tr('material'),
             tr('count'),
             tr('texture'),
             tr('move'),
+            tr('sheet_spec.col_thickness'),
         ])
+        ui_call(self.offcuts_table.horizontalHeaderItem(4), 'setToolTip', tr('sheet_spec.col_thickness_tooltip'))
         ui_call(self.offcuts_table.horizontalHeaderItem(1), 'setToolTip', tr('number_of_sheets_or_offcuts'))
         
         self.offcuts_table.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
@@ -353,11 +367,15 @@ class NestingTaskPanel:
                 header.setSectionResizeMode(1, QtGui.QHeaderView.ResizeToContents)
                 header.setSectionResizeMode(2, QtGui.QHeaderView.ResizeToContents)
                 header.setSectionResizeMode(3, QtGui.QHeaderView.ResizeToContents)
+                header.setSectionResizeMode(4, QtGui.QHeaderView.ResizeToContents)
             else:
                 header.setResizeMode(0, QtGui.QHeaderView.Stretch)
                 header.setResizeMode(1, QtGui.QHeaderView.ResizeToContents)
                 header.setResizeMode(2, QtGui.QHeaderView.ResizeToContents)
                 header.setResizeMode(3, QtGui.QHeaderView.ResizeToContents)
+                header.setResizeMode(4, QtGui.QHeaderView.ResizeToContents)
+            # Thickness keeps logical column 4 but is shown after Material.
+            header.moveSection(header.visualIndex(4), 1)
         except Exception:
             pass
         try:
@@ -455,14 +473,6 @@ class NestingTaskPanel:
             self.cpu_cores_combo
         )
 
-        cfg_grid.addWidget(
-            cpu_box,
-            3,
-            1
-        )
-
-
-
         # Place boxes in 2-column grid
         cfg_grid.addWidget(
             sheet_box,
@@ -479,23 +489,11 @@ class NestingTaskPanel:
             1
         )
 
-        cfg_grid.addWidget(units_box, 0, 1)
-        cfg_grid.addWidget(
-            cpu_box,
-            3,
-            1
-        )
-
-        # Nesting CLI search/GPU settings sit under Units (rows 1-2).
-        self._build_nesting_cli_settings(cfg_grid)
-
-        # Make columns expand nicely
-        try:
-            # Left column = 2/3, right column = 1/3.
-            cfg_grid.setColumnStretch(0, 2)
-            cfg_grid.setColumnStretch(1, 1)
-        except Exception:
-            pass
+        # Setup tab: Units, Nesting CLI search/GPU settings and CPU cores.
+        self.setup_layout.addWidget(units_box)
+        self._build_nesting_cli_settings(self.setup_layout)
+        self.setup_layout.addWidget(cpu_box)
+        self.setup_layout.addStretch(1)
 
         # Table (with control_rows at the bottom)
         self.layout.addWidget(ui_widget(QtGui.QLabel, tr('b_selected_parts_preview_mode_b')))
@@ -1765,7 +1763,10 @@ class NestingTaskPanel:
         gpu_device_row.addWidget(self.show_gpus_btn)
         lay.addLayout(gpu_device_row)
 
-        cfg_grid.addWidget(box, 1, 1, 2, 1)
+        if isinstance(cfg_grid, QtGui.QGridLayout):
+            cfg_grid.addWidget(box, 1, 1, 2, 1)
+        else:
+            cfg_grid.addWidget(box)
 
     # Append a labelled text input to the main panel and return the input widget.
     def create_input(self, label, default, tooltip):
