@@ -1259,6 +1259,21 @@ def _coerce_int(value, default, lo, hi):
     return int(round(_coerce_number(value, default, lo, hi)))
 
 
+FAST_MODE_RESOLUTION = 2.0
+
+
+def fast_mode_resolution():
+    """Raster size (mm/px) used by fast mode; preference FastModeResolution
+    (0 = use the normal resolution)."""
+    try:
+        import FreeCAD as App
+        value = float(str(App.ParamGet("User parameter:BaseApp/Preferences/Mod/IPNesting")
+                          .GetString("FastModeResolution", str(FAST_MODE_RESOLUTION))).replace(",", "."))
+    except Exception:
+        value = FAST_MODE_RESOLUTION
+    return value if math.isfinite(value) and value > 0 else 0.0
+
+
 # Build the nesting CLI `config` object, coercing every setting to its
 # supported range and applying mode-specific time-budget rules. Kept as a
 # pure function so it can be exercised without FreeCAD or PySide.
@@ -1294,6 +1309,13 @@ def build_nesting_config(
     round_seconds = _coerce_number(
         continuous_round_seconds, 30.0, lo=0.01, hi=86400.0
     )
+
+    # Fast mode ("first") searches on a coarser raster: on a 3000 x 3800 mm
+    # sheet 2 mm/px was ~5x faster than 1 mm/px with the same sheets and the
+    # same parts placed (the engine validates the real contours, so spacing
+    # stays exact). Continuous mode keeps the configured resolution.
+    if mode == "first":
+        resolution = max(resolution, fast_mode_resolution())
 
     # Continuous accepts a total deadline; zero means unlimited. First must
     # export exactly zero even when the panel retains a previous deadline.

@@ -682,5 +682,9 @@
   "undo_nesting.nothing": "There is no nesting result to undo.",
   "undo_nesting.confirm": "These result documents will be closed without saving:\n\n%s\n\nContinue?",
   "open_cam.menu": "Go to CAM",
-  "open_cam.tooltip": "Switch to the CAM workbench to machine the nesting result."
+  "open_cam.tooltip": "Switch to the CAM workbench to machine the nesting result.",
+  "sheet_thickness.batch_stats": "%d sheet(s) used · %d parts nested · %d parts not nested",
+  "sheet_thickness.left_total": "WARNING: %d parts are still not nested (they do not fit on the available sheets). Add more sheets of that thickness.",
+  "sheet_thickness.cancelling": "Cancelling all nestings...",
+  "sheet_thickness.cancelled": "Nesting cancelled: every thickness was stopped and no result was created."
 }

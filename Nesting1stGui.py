@@ -145,6 +145,16 @@ def parallel_thickness_enabled():
         return True
 
 
+def batch_stats(result_data):
+    """(sheets used, parts placed, parts left without nesting) of one result."""
+    data = result_data or {}
+    sheets = [s for s in (data.get("sheets") or []) if not isinstance(s, dict) or s.get("parts", True)]
+    summary = data.get("summary") or {}
+    placed = summary.get("placed_count", len(data.get("placements") or []))
+    unplaced = summary.get("unplaced_count", len(data.get("unplaced") or []))
+    return len(sheets), int(placed or 0), int(unplaced or 0)
+
+
 class NestingTaskPanel:
     # Nesting CLI settings exposed in the right-hand column, mapped to their
     # preference keys and defaults. "text" entries are QLineEdit fields, "combo"
@@ -3682,12 +3692,32 @@ class NestingTaskPanel:
             self._batch_done = []
             start = time.time()
             last_importer = None
+            cancelled_at = None
+            created = []
             while not all(job["done"] for job in jobs):
-                if progress.wasCanceled():
+                if progress.wasCanceled() and cancelled_at is None:
+                    # Cancel stops EVERY thickness: ask the engines to stop, kill
+                    # them if they do not, and keep none of this run's results.
+                    cancelled_at = time.time()
                     for job in jobs:
                         if not job["done"]:
-                            open(job["cancel"], "w").close()  # cooperative stop
-                    progress.setLabelText(tr('common.cancel') + "...")
+                            try:
+                                open(job["cancel"], "w").close()
+                            except OSError:
+                                pass
+                    progress.setLabelText(tr('sheet_thickness.cancelling'))
+                if cancelled_at is not None:
+                    for job in jobs:
+                        if job["done"]:
+                            continue
+                        if job["proc"].poll() is None and time.time() - cancelled_at > 1.5:
+                            job["proc"].kill()
+                        if job["proc"].poll() is not None:
+                            job["done"] = True
+                            job["log"].close()
+                    QtGui.QApplication.processEvents()
+                    time.sleep(0.1)
+                    continue
                 for job in jobs:
                     if job["done"] or job["proc"].poll() is None:
                         continue
@@ -3703,6 +3733,9 @@ class NestingTaskPanel:
                             label = "Nesting_Result_%smm" % format_number(job["batch"]["thickness"]).replace(".", ",")
                             importer.result_doc.Label = label
                             job["batch"]["document_label"] = label
+                            (job["batch"]["sheets_used"], job["batch"]["placed"],
+                             job["batch"]["unplaced"]) = batch_stats(importer.result_data)
+                            created.append(importer.result_doc.Name)
                             fit_document(importer.result_doc)
                             self._batch_done.append(job["batch"])
                             last_importer = importer
@@ -3714,17 +3747,26 @@ class NestingTaskPanel:
                 QtGui.QApplication.processEvents()
                 time.sleep(0.2)
             progress.close()
+            if cancelled_at is not None:
+                for name in created:
+                    try:
+                        App.closeDocument(name)
+                    except Exception:
+                        pass
+                self._batch_done = []
+                if self.preview_doc_name in App.listDocuments():
+                    App.setActiveDocument(self.preview_doc_name)
+                App.Console.PrintMessage("1st Nesting: " + tr('sheet_thickness.cancelled') + "\n")
+                QtGui.QMessageBox.information(self.form, tr('sheet_thickness.batch_done_title'),
+                                              tr('sheet_thickness.cancelled'))
+                return
             if last_importer is not None:
                 del last_importer._show_result_view
                 last_importer._show_result_view()
             skipped = getattr(self, "_batch_skipped", None) or []
             if self._batch_done:
-                text = tr('sheet_thickness.batch_done') % "\n".join(
-                    "%s → %s" % (self._thickness_checker._dimension(b["thickness"]), b.get("document_label", ""))
-                    for b in self._batch_done)
-                if skipped:
-                    text += "\n\n" + tr('sheet_thickness.skipped_parts') % "\n".join(skipped[:15])
-                QtGui.QMessageBox.information(self.form, tr('sheet_thickness.batch_done_title'), text)
+                QtGui.QMessageBox.information(self.form, tr('sheet_thickness.batch_done_title'),
+                                              self._batch_summary_text(self._batch_done, skipped))
         except Exception:
             progress.close()
             for job in jobs:
@@ -3771,9 +3813,18 @@ class NestingTaskPanel:
         batch = getattr(self, "_batch_current", None)
         if batch is None:
             return
-        if success:
+        cancelled = bool(getattr(self._nesting_manager, "_cancelled", False))
+        if success and not cancelled:
             self._label_batch_result(batch)
             self._batch_done.append(batch)
+        if cancelled:
+            # Cancel stops every thickness: the queued ones are not started.
+            self._batch_queue = []
+            self._batch_current = None
+            self._batch_part_names = self._batch_sheet_ids = None
+            self._batch_skipped = []
+            App.Console.PrintMessage("1st Nesting: " + tr('sheet_thickness.cancelled') + "\n")
+            return
         if success and self._batch_queue:
             QtCore.QTimer.singleShot(200, self._start_next_batch)
             return
@@ -3781,16 +3832,28 @@ class NestingTaskPanel:
         self._batch_current = None
         self._batch_part_names = self._batch_sheet_ids = None
         skipped = getattr(self, "_batch_skipped", None) or []
-        if success and (getattr(self, "_batch_total", 0) > 1 or skipped):
-            text = tr('sheet_thickness.batch_done') % "\n".join(
-                "%s → %s" % (self._thickness_checker._dimension(b["thickness"]),
-                             b.get("document_label", ""))
-                for b in self._batch_done)
-            if skipped:
-                text += "\n\n" + tr('sheet_thickness.skipped_parts') % "\n".join(skipped[:15] + (
-                    ["…"] if len(skipped) > 15 else []))
-            QtGui.QMessageBox.information(self.form, tr('sheet_thickness.batch_done_title'), text)
+        if success and self._batch_done:
+            QtGui.QMessageBox.information(self.form, tr('sheet_thickness.batch_done_title'),
+                                          self._batch_summary_text(self._batch_done, skipped))
         self._batch_skipped = []
+
+    # One line per thickness: document, sheets used, parts nested and parts left.
+    def _batch_summary_text(self, batches, skipped):
+        lines = []
+        left_total = 0
+        for b in batches:
+            line = "%s → %s" % (self._thickness_checker._dimension(b["thickness"]), b.get("document_label", ""))
+            if "sheets_used" in b:
+                line += "\n     " + tr('sheet_thickness.batch_stats') % (b["sheets_used"], b["placed"], b["unplaced"])
+                left_total += b["unplaced"]
+            lines.append(line)
+        text = tr('sheet_thickness.batch_done') % "\n\n".join(lines)
+        if left_total:
+            text += "\n\n" + tr('sheet_thickness.left_total') % left_total
+        if skipped:
+            text += "\n\n" + tr('sheet_thickness.skipped_parts') % "\n".join(skipped[:15] + (
+                ["…"] if len(skipped) > 15 else []))
+        return text
 
     # Name the result document after its thickness, e.g. Nesting_Result_10mm.
     def _label_batch_result(self, batch):
@@ -3803,6 +3866,7 @@ class NestingTaskPanel:
             label = "Nesting_Result_%smm" % format_number(batch["thickness"]).replace(".", ",")
             doc.Label = label
             batch["document_label"] = label
+            batch["sheets_used"], batch["placed"], batch["unplaced"] = batch_stats(importer.result_data)
         except Exception:
             App.Console.PrintWarning("1st Nesting: could not rename the result document\n")
 

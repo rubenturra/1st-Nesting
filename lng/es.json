@@ -682,5 +682,9 @@
   "undo_nesting.nothing": "No hay ningún resultado de anidado que deshacer.",
   "undo_nesting.confirm": "Se cerrarán sin guardar estos documentos de resultado:\n\n%s\n\n¿Continuar?",
   "open_cam.menu": "Ir a CAM",
-  "open_cam.tooltip": "Cambiar al banco de trabajo CAM para mecanizar el resultado del anidado."
+  "open_cam.tooltip": "Cambiar al banco de trabajo CAM para mecanizar el resultado del anidado.",
+  "sheet_thickness.batch_stats": "%d plancha(s) usadas · %d piezas anidadas · %d piezas sin anidar",
+  "sheet_thickness.left_total": "ATENCIÓN: faltan %d piezas por anidar (no caben en las planchas disponibles). Añade más planchas de ese espesor.",
+  "sheet_thickness.cancelling": "Cancelando todos los anidados...",
+  "sheet_thickness.cancelled": "Anidado cancelado: se han parado todos los espesores y no se ha creado ningún resultado."
 }
