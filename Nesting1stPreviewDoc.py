@@ -45,6 +45,12 @@ class PreviewDocManager:
         identity rotation when no face is available or evaluation fails.
         """
         try:
+            # Sheets with a thickness: keep an orientation whose depth is a
+            # stock gauge (a 20x200x30 bar modelled 30 thick stays 30 thick).
+            gauge_rotation = self._orientation_matching_sheet(obj)
+            if gauge_rotation is not None:
+                return gauge_rotation
+
             # Rank faces by area before choosing the face whose normal will point upward.
             faces = sorted(obj.Shape.Faces, key=lambda f: f.Area, reverse=True)
             if not faces:
@@ -61,6 +67,45 @@ class PreviewDocManager:
             App.Console.PrintError(tr('align_to_largest_face_failed') + traceback.format_exc())
             return App.Rotation()
     
+    # Rotation giving a depth equal to a sheet thickness, or None to use the default.
+    def _orientation_matching_sheet(self, obj):
+        from Nesting1stSheetSpec import sheet_thickness_values, same_thickness
+        values = sheet_thickness_values(getattr(self.panel, "offcuts", []) or [])
+        if not values:
+            return None
+        shape = obj.Shape
+        if shape is None or shape.isNull():
+            return None
+
+        def depth(rotation):
+            moved = shape.copy()
+            moved.Placement = App.Placement(App.Vector(), rotation).multiply(moved.Placement)
+            return moved.BoundBox.ZLength
+
+        def matches(rotation):
+            return any(same_thickness(depth(rotation), v) for v in values)
+
+        # The modelled orientation wins when it already is a stock thickness.
+        if matches(App.Rotation()):
+            return App.Rotation()
+        # Otherwise the largest planar face whose depth is a stock thickness.
+        seen = []
+        for face in sorted(shape.Faces, key=lambda f: f.Area, reverse=True):
+            try:
+                if "Plane" not in str(face.Surface):
+                    continue
+                u0, u1, v0, v1 = face.ParameterRange
+                normal = face.normalAt((u0 + u1) / 2.0, (v0 + v1) / 2.0)
+            except Exception:
+                continue
+            if any(abs(abs(normal.dot(n)) - 1.0) < 1e-6 for n in seen):
+                continue
+            seen.append(normal)
+            rotation = App.Rotation(normal, App.Vector(0, 0, 1))
+            if matches(rotation):
+                return rotation
+        return None
+
     # Ensure preview document exists; create if needed.
     def ensure_preview_doc(self, reset_counters_if_new=True):
         """

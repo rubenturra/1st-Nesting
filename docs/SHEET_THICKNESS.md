@@ -20,6 +20,15 @@ When a DXF name contains a thickness marker such as `_e10mm_`, that thickness is
 used if the field is empty. If the field holds a different value, the dialog
 asks which one to keep.
 
+## Part orientation
+
+New parts are normally laid on their largest face. When the sheets have
+thicknesses, 1st Nesting first keeps the modelled orientation if its depth is
+one of those thicknesses, and otherwise uses the largest flat face that gives a
+stock thickness. A 20 x 200 x 30 bar modelled 30 thick therefore stays 30 thick
+instead of lying on its 200 x 30 side. Add the sheets before the parts to use
+this; parts already in the list can be turned with **Rotate** (90°, X/Y).
+
 ## Nesting by thickness
 
 When the sheets and offcuts have thicknesses, **Run nesting** makes one nesting
