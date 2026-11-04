@@ -287,9 +287,10 @@ class BridgeLayout:
                         raise BridgeError('hole_collision')
             elif common.Area > TOLERANCE or strip.distToShape(check_face(part))[0] <= TOLERANCE:
                 raise BridgeError('collision')
-        joined = joined_faces([check_face(a), strip, check_face(b)])
-        if not joined.isValid() or len(joined.Faces) != 1:
-            raise BridgeError('attachment')
+        if not self._joins_locally(strip, a, b, width):
+            joined = joined_faces([check_face(a), strip, check_face(b)])
+            if not joined.isValid() or len(joined.Faces) != 1:
+                raise BridgeError('attachment')
         for old in self.bridges:
             pair = {old['first']['part'], old['second']['part']}
             if pair == {a['index'], b['index']}:
@@ -299,6 +300,21 @@ class BridgeLayout:
         return dict(id=self.next_id, sheet=a['sheet'], first=dict(part=a['index'], point=p),
                     second=dict(part=b['index'], point=q), width_mm=width, length_mm=length,
                     outer=outer, face=strip)
+
+    def _joins_locally(self, strip, a, b, width):
+        """Fuse only the material around the strip (fast); False when unsure."""
+        try:
+            box = strip.BoundBox
+            margin = max(1.0, 2*width)
+            region = Part.makePlane(box.XLength+2*margin, box.YLength+2*margin,
+                                    App.Vector(box.XMin-margin, box.YMin-margin, 0))
+            pieces = [check_face(a).common(region), strip, check_face(b).common(region)]
+            if any(piece.isNull() or piece.Area <= TOLERANCE for piece in pieces):
+                return False
+            joined = joined_faces(pieces)
+            return joined.isValid() and len(joined.Faces) == 1
+        except Exception:
+            return False
 
     def add_bridge(self, first, second, width_mm):
         bridge = self.make_bridge(first, second, width_mm)
