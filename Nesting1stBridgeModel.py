@@ -81,19 +81,32 @@ def simplify_ring(ring, tolerance=CHECK_SIMPLIFY):
     return result if len(result) >= 3 else points
 
 
+def quick_face(outer, holes=()):
+    """Face with holes from wires (no boolean cut); falls back to face()."""
+    try:
+        wires = [wire(outer)] + [wire(h) for h in holes]
+        shape = Part.makeFace(wires, "Part::FaceMakerBullseye")
+        faces = shape.Faces
+        if len(faces) == 1 and faces[0].Area > TOLERANCE:
+            return faces[0]
+    except Exception:
+        pass
+    return face(outer, holes)
+
+
 def check_face(part):
     """Simplified face used for bridge validation (cached)."""
     value = part.get('_check_face')
     if value is None:
-        value = part['_check_face'] = face(simplify_ring(part['outer']),
-                                           [simplify_ring(h) for h in part['holes']])
+        value = part['_check_face'] = quick_face(simplify_ring(part['outer']),
+                                                 [simplify_ring(h) for h in part['holes']])
     return value
 
 
 def check_hole_faces(part):
     value = part.get('_check_holes')
     if value is None:
-        value = part['_check_holes'] = [face(simplify_ring(h)) for h in part['holes']]
+        value = part['_check_holes'] = [quick_face(simplify_ring(h)) for h in part['holes']]
     return value
 
 
