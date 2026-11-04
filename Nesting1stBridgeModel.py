@@ -418,11 +418,13 @@ class BridgeLayout:
 
 def store_result_data(document, data, object_name):
     """Persist millimetre contours so a saved result can reopen the editor."""
-    snapshot = copy.deepcopy(data)
-    for source in snapshot.get('sourceParts', []):
-        source.pop('shape_brep', None)
-    for placement in snapshot.get('placements', []):
-        placement['_bridge_object_name'] = object_name(placement)
+    # Only the changed levels are copied; json.dumps below makes the stored
+    # text, so the importer's own data is never modified (no deep copy).
+    snapshot = dict(data)
+    snapshot['sourceParts'] = [{k: v for k, v in source.items() if k != 'shape_brep'}
+                               for source in data.get('sourceParts', [])]
+    snapshot['placements'] = [dict(placement, _bridge_object_name=object_name(placement))
+                              for placement in data.get('placements', [])]
     meta = document.addObject('App::FeaturePython', 'NestingResultData')
     meta.addProperty('App::PropertyString', 'ResultJson', '1st Nesting')
     meta.ResultJson = json.dumps(snapshot)

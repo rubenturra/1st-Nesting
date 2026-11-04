@@ -391,10 +391,12 @@ def pack_groups(parts, definitions, spacing, validate, preview_layouts=None):
 
 def expand_result(data, session):
     """Expand each rigid placement back into separately importable original parts."""
-    result = copy.deepcopy(data)
     definitions = {p['id']: p for p in session.get('grain_matching_proxies', [])}
     if not definitions:
-        return result
+        # Nothing to expand: a shallow copy is enough (a deep copy of 1200
+        # placed parts with their contours took ~1 s on every import).
+        return dict(data)
+    result = copy.deepcopy(data)
     source = {p['source_part_index']: p for p in session['parts']}
     changed = False; count = 0
     def members_for(part):
