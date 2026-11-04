@@ -39,8 +39,8 @@ class Nesting1stWorkbench(Workbench):
     # Load the nesting panel and place Settings next to Run Nesting in the toolbar.
     def Initialize(self):
         import Nesting1stGui
-        self.appendToolbar("1st Nesting Tools", ["Nesting1st_RunNesting", "Nesting1st_Settings"])
-        self.appendMenu("1st Nesting", ["Nesting1st_RunNesting", "Nesting1st_Settings"])
+        self.appendToolbar("1st Nesting Tools", ["Nesting1st_RunNesting", "Nesting1st_Settings", "Nesting1st_OpenCAM"])
+        self.appendMenu("1st Nesting", ["Nesting1st_RunNesting", "Nesting1st_Settings", "Nesting1st_OpenCAM"])
 
     # Return the FreeCAD Python workbench type identifier.
     def GetClassName(self): 
@@ -103,6 +103,24 @@ class RunNestingCommand:
     def GetClassName(self):
         return "Gui::PythonWorkbench"
 
+# Switch to the CAM workbench (to machine the nesting result).
+class OpenCAMCommand:
+    def GetResources(self):
+        import os
+        from Nesting1stLanguages import tr, DIRECTORY
+        icon = os.path.join(DIRECTORY, "icons", "open_cam.svg")
+        return {'MenuText': tr('open_cam.menu'), 'ToolTip': tr('open_cam.tooltip'),
+                'Pixmap': icon if os.path.exists(icon) else 'Std_Workbench'}
+
+    def Activated(self):
+        import FreeCADGui as Gui
+        Gui.activateWorkbench("CAMWorkbench")
+
+    def IsActive(self):
+        return True
+
+
+Gui.addCommand('Nesting1st_OpenCAM', OpenCAMCommand())
 Gui.addCommand('Nesting1st_RunNesting', RunNestingCommand())
 Gui.addCommand('Nesting1st_Settings', SettingsCommand())
 Gui.addWorkbench(Nesting1stWorkbench())

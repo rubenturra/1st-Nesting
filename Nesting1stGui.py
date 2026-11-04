@@ -126,6 +126,16 @@ class _ProportionalHeader(QtGui.QHeaderView):
 
 
 # Coordinate nesting settings, material/part tables, preview editing and nesting CLI execution.
+def fit_document(doc):
+    """Top view showing every sheet of a result document (not the origin)."""
+    try:
+        view = Gui.getDocument(doc.Name).activeView()
+        view.viewTop()
+        view.fitAll()
+    except Exception:
+        pass
+
+
 def parallel_thickness_enabled():
     """True (default): nest every thickness at the same time."""
     try:
@@ -624,10 +634,17 @@ class NestingTaskPanel:
         self.layout.addLayout(self.btn_layout)
 
         # Run button
+        # Run and Undo nesting side by side, normal height.
+        run_row = QtGui.QHBoxLayout()
         self.run_btn = ui_widget(QtGui.QPushButton, tr('run_nesting'))
-        self.run_btn.setStyleSheet("background-color: #CF3519; color: white; font-weight: bold; height: 35px;")
+        self.run_btn.setStyleSheet("background-color: #CF3519; color: white; font-weight: bold; padding: 4px 10px;")
         self.run_btn.clicked.connect(self.execute_nesting)
-        self.layout.addWidget(self.run_btn)
+        run_row.addWidget(self.run_btn, 3)
+        self.undo_nesting_btn = ui_widget(QtGui.QPushButton, tr('undo_nesting.button'))
+        ui_call(self.undo_nesting_btn, 'setToolTip', tr('undo_nesting.tooltip'))
+        self.undo_nesting_btn.clicked.connect(self.undo_last_nesting)
+        run_row.addWidget(self.undo_nesting_btn, 2)
+        self.layout.addLayout(run_row)
         self.stop_btn = ui_widget(QtGui.QPushButton, tr('common.cancel'))
         self.stop_btn.setEnabled(False)
         self.stop_btn.clicked.connect(lambda: self._nesting_manager.stop_nesting())
@@ -3505,6 +3522,8 @@ class NestingTaskPanel:
 
         The process manager polls result.json and imports the completed result.
         """
+        # Remember the open documents: Undo nesting closes the results created after this.
+        self._docs_before_nesting = set(App.listDocuments())
         try:
             if self._nesting_manager.is_running():
                 return
@@ -3577,6 +3596,38 @@ class NestingTaskPanel:
             self._start_next_batch()
         except Exception:
             self._nesting_manager._finish_failure(traceback.format_exc())
+
+    # Close the result documents created by the last Run nesting.
+    def undo_last_nesting(self):
+        before = getattr(self, "_docs_before_nesting", None)
+        if self._nesting_manager.is_running():
+            return
+        docs = [App.getDocument(n) for n in App.listDocuments()
+                if before is not None and n not in before and n.startswith("Nesting_Result")]
+        if not docs:
+            QtGui.QMessageBox.information(self.form, tr('undo_nesting.title'), tr('undo_nesting.nothing'))
+            return
+        answer = QtGui.QMessageBox.question(
+            self.form, tr('undo_nesting.title'),
+            tr('undo_nesting.confirm') % "\n".join(d.Label for d in docs),
+            QtGui.QMessageBox.Yes | QtGui.QMessageBox.No, QtGui.QMessageBox.No)
+        if answer != QtGui.QMessageBox.Yes:
+            return
+        for doc in docs:
+            try:
+                App.closeDocument(doc.Name)
+            except Exception:
+                pass
+        self._docs_before_nesting = None
+        try:
+            importer = self._nesting_manager.importer
+            if importer is not None and getattr(importer, "result_doc", None) is not None:
+                if importer.result_doc.Name not in App.listDocuments():
+                    importer.result_doc = None
+        except (ReferenceError, RuntimeError, AttributeError):
+            self._nesting_manager.importer = None
+        if self.preview_doc_name in App.listDocuments():
+            App.setActiveDocument(self.preview_doc_name)
 
     # All thicknesses at once: one nesting engine per thickness, each in its own
     # folder, so the CPU cores are used together instead of one run after another.
@@ -3652,6 +3703,7 @@ class NestingTaskPanel:
                             label = "Nesting_Result_%smm" % format_number(job["batch"]["thickness"]).replace(".", ",")
                             importer.result_doc.Label = label
                             job["batch"]["document_label"] = label
+                            fit_document(importer.result_doc)
                             self._batch_done.append(job["batch"])
                             last_importer = importer
                 running = sum(1 for job in jobs if not job["done"])

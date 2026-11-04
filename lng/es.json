@@ -675,5 +675,12 @@
   "sheet_thickness.skipped_parts": "Estas piezas NO se han anidado porque no hay chapa de su espesor (siguen en rojo):\n%s",
   "bridge.drag_target": "Suelta el ratón encima de otra pieza para crear el puente.",
   "sheet_thickness.parallel_preparing": "Preparando %s (%d de %d)...",
-  "sheet_thickness.parallel_running": "Anidando %d espesores a la vez: %d de %d terminados (%.0f s)"
+  "sheet_thickness.parallel_running": "Anidando %d espesores a la vez: %d de %d terminados (%.0f s)",
+  "undo_nesting.button": "Deshacer anidado",
+  "undo_nesting.tooltip": "Cerrar los documentos de resultado creados por el último Iniciar anidado.",
+  "undo_nesting.title": "Deshacer anidado",
+  "undo_nesting.nothing": "No hay ningún resultado de anidado que deshacer.",
+  "undo_nesting.confirm": "Se cerrarán sin guardar estos documentos de resultado:\n\n%s\n\n¿Continuar?",
+  "open_cam.menu": "Ir a CAM",
+  "open_cam.tooltip": "Cambiar al banco de trabajo CAM para mecanizar el resultado del anidado."
 }

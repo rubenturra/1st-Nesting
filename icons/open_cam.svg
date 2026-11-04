@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect x="4" y="46" width="56" height="12" rx="2" fill="#9aa4ad" stroke="#3b444c" stroke-width="3"/>
+  <path d="M22 6h20v14l-6 10h-8l-6-10z" fill="#3d7ab8" stroke="#1d3f61" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M30 30h4v12h-4z" fill="#1d3f61"/>
+  <text x="32" y="22" font-family="Arial" font-size="11" font-weight="bold" text-anchor="middle" fill="#fff">CAM</text>
+</svg>

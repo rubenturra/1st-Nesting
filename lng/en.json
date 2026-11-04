@@ -675,5 +675,12 @@
   "sheet_thickness.skipped_parts": "These parts were NOT nested because there is no sheet of their thickness (they stay red):\n%s",
   "bridge.drag_target": "Release the mouse over another part to create the bridge.",
   "sheet_thickness.parallel_preparing": "Preparing %s (%d of %d)...",
-  "sheet_thickness.parallel_running": "Nesting %d thicknesses at the same time: %d of %d finished (%.0f s)"
+  "sheet_thickness.parallel_running": "Nesting %d thicknesses at the same time: %d of %d finished (%.0f s)",
+  "undo_nesting.button": "Undo nesting",
+  "undo_nesting.tooltip": "Close the result documents created by the last Run nesting.",
+  "undo_nesting.title": "Undo nesting",
+  "undo_nesting.nothing": "There is no nesting result to undo.",
+  "undo_nesting.confirm": "These result documents will be closed without saving:\n\n%s\n\nContinue?",
+  "open_cam.menu": "Go to CAM",
+  "open_cam.tooltip": "Switch to the CAM workbench to machine the nesting result."
 }
