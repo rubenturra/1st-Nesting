@@ -52,6 +52,26 @@ def face(outer, holes=()):
     return shape.Faces[0] if len(shape.Faces) == 1 else shape
 
 
+class Lazy:
+    """A value computed the first time a _LazyPart key is read."""
+    def __init__(self, compute):
+        self.compute = compute
+
+
+class _LazyPart(dict):
+    """Part record whose costly 'face'/'shape' are only built when used, so the
+    bridge editor opens quickly on sheets with hundreds of parts."""
+    def __getitem__(self, key):
+        value = dict.__getitem__(self, key)
+        if isinstance(value, Lazy):
+            value = value.compute()
+            dict.__setitem__(self, key, value)
+        return value
+
+    def get(self, key, default=None):
+        return self[key] if key in self else default
+
+
 def joined_faces(shapes):
     result = shapes[0].multiFuse(shapes[1:]) if len(shapes) > 1 else shapes[0]
     # Planar Boolean fusions can return a compound of subdivided faces.
@@ -101,9 +121,10 @@ class BridgeLayout:
             holes = [_ring(h) for h in placement['absolute_holes']] if 'absolute_holes' in placement else \
                 [_transform(h, placement) for h in source.get('holes', [])]
             index = len(self.parts)
-            self.parts.append(dict(index=index, sheet=int(placement.get('sheet_instance_index', 0)),
+            self.parts.append(_LazyPart(index=index, sheet=int(placement.get('sheet_instance_index', 0)),
                                    label=source.get('label') or str(placement.get('id', index+1)),
-                                   outer=outer, holes=holes, face=face(outer, holes),
+                                   outer=outer, holes=holes,
+                                   face=Lazy(lambda o=outer, h=holes: face(o, h)),
                                    source_type=source.get('source_type', '2d'),
                                    shape=(source_shapes or {}).get(index), placement=placement))
         if not self.sheets or not self.parts:
@@ -322,18 +343,20 @@ def load_result(panel):
         if not placement.get('placed', True):
             continue
         if source_breps is not None:
-            shape = Part.Shape()
-            shape.importBrepFromString(source_breps[str(index)])
-            if shape.isNull() or not shape.isValid():
-                raise BridgeError('geometry')
-            shapes[index] = shape
+            def restore(brep=source_breps[str(index)]):
+                shape = Part.Shape()
+                shape.importBrepFromString(brep)
+                if shape.isNull() or not shape.isValid():
+                    raise BridgeError('geometry')
+                return shape
+            shapes[index] = Lazy(restore)
         else:
             # Compatibility with the original overlapping-bridge documents.
             name = placement.get('_bridge_object_name') or importer._result_object_name(placement)
             obj = document.getObject(name)
             if obj is None or not hasattr(obj, 'Shape') or obj.Shape.isNull():
                 raise BridgeError('no_result')
-            shapes[index] = sheet_local_shape(obj)
+            shapes[index] = Lazy(lambda obj=obj: sheet_local_shape(obj))
         index += 1
     layout = BridgeLayout(data, shapes)
     if bridge_metadata:

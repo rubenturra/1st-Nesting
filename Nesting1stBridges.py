@@ -322,8 +322,8 @@ class BridgeDialog(QtGui.QDialog):
         self.pending = None
         self.cancel_point.setEnabled(False)
         sheet = next(s for s in self.layout_model.sheets if s['index'] == self.current_sheet())
-        # Large sheets (hundreds of parts) must stay fluid when zooming: draw
-        # the machining details coarser, skip labels and antialiasing.
+        # Large sheets (hundreds of parts) must open and zoom fluidly: only the
+        # outlines are drawn (no machining details) and without antialiasing.
         count = sum(1 for part in self.layout_model.parts if part['sheet'] == sheet['index'])
         many = count > LIGHT_DRAWING_PARTS
         self.view.setRenderHint(QtGui.QPainter.Antialiasing, not many)
@@ -337,7 +337,7 @@ class BridgeDialog(QtGui.QDialog):
             item = scene.addPath(painter_path(part['outer'], part['holes']), cosmetic_pen(_colour(part['index']), 1.8),
                                  QtGui.QBrush(colour))
             item.setToolTip(part['label'])
-            if part['shape'] is not None:
+            if not many and part['shape'] is not None:
                 from Nesting1stExport import _discretize_edge_2d
                 details = QtGui.QPainterPath()
                 seen = set()
@@ -352,14 +352,7 @@ class BridgeDialog(QtGui.QDialog):
                         details.lineTo(x, -y)
                 detail_item = scene.addPath(details, cosmetic_pen('#566372', .8))
                 detail_item.setAcceptedMouseButtons(QtCore.Qt.NoButton)
-            if many:
-                continue  # The part name stays available as the tooltip.
-            label = scene.addSimpleText('%d · %s' % (part['index']+1, part['label']))
-            label.setFlag(QtGui.QGraphicsItem.ItemIgnoresTransformations)
-            label.setBrush(QtGui.QBrush(QtGui.QColor('#273545')))
-            bounds = item.boundingRect()
-            label.setPos(bounds.left(), bounds.top())
-            label.setZValue(3)
+            # No per-part text: the name is the tooltip.
         selected = self.selected_ids()
         for bridge in self.layout_model.bridges:
             if bridge['sheet'] != sheet['index']:
