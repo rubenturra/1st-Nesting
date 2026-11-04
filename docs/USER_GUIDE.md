@@ -174,6 +174,14 @@ The custom angle changes the prepared relationship between the part and its text
 
 ## 8. Mark part holes
 
+Through holes are opened automatically: every inner contour that goes right
+through a 3D part (no material at any depth) stays open, so smaller parts that
+fit are nested inside it. Blind pockets and grooves stay closed. To change
+this for one part, select its row and click **Mark selected part holes**; your
+selection then replaces the automatic one. The boolean preference
+`BaseApp/Preferences/Mod/IPNesting/AutoPartHoles` set to `False` turns the
+automatic opening off.
+
 Select one part row and click **Mark selected part holes**.
 
 ![Part hole editor with a selected circular inner contour](images/user-guide/11-mark-holes.png)

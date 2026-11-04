@@ -660,8 +660,64 @@ def remember_hole_selection(panel, obj, holes, deflection=0.01):
     panel._part_holes[obj.Name] = holes
 
 
+def auto_part_holes_enabled():
+    try:
+        return bool(App.ParamGet("User parameter:BaseApp/Preferences/Mod/IPNesting")
+                    .GetBool("AutoPartHoles", True))
+    except Exception:
+        return True
+
+
+def _point_inside_polygon_2d(polygon):
+    """A point strictly inside a simple polygon (centroid when possible)."""
+    import Part
+    face = Part.Face(Part.makePolygon([App.Vector(x, y, 0) for x, y in polygon + polygon[:1]]))
+    com = face.CenterOfMass
+    if face.isInside(com, 1e-6, False):
+        return com.x, com.y
+    box = face.BoundBox
+    for i in range(1, 8):
+        for j in range(1, 8):
+            point = App.Vector(box.XMin + box.XLength * i / 8.0, box.YMin + box.YLength * j / 8.0, 0)
+            if face.isInside(point, 1e-6, False):
+                return point.x, point.y
+    return None
+
+
+def through_holes(obj, candidates):
+    """Inner contours that go right through the part (no material at any depth),
+    so smaller parts can be nested inside them. Blind pockets are excluded."""
+    shape = getattr(obj, "Shape", None)
+    if shape is None or shape.isNull() or not shape.Solids:
+        return []  # Flat DXF/SVG contours: every inner contour is an opening.
+    box = shape.BoundBox
+    result = []
+    for hole in candidates[1:]:
+        point = _point_inside_polygon_2d(hole)
+        if point is None:
+            continue
+        levels = [box.ZMin + box.ZLength * k / 10.0 for k in range(1, 10)]
+        if not any(shape.isInside(App.Vector(point[0], point[1], z), 1e-6, True) for z in levels):
+            result.append(hole)
+    return result
+
+
 def current_selected_holes(panel, obj, deflection=0.01, candidates=None):
-    selected = getattr(panel, "_part_holes", {}).get(obj.Name) or []
+    user_holes = getattr(panel, "_part_holes", {})
+    if obj.Name not in user_holes and auto_part_holes_enabled():
+        # Not edited by hand: open every through hole automatically so parts
+        # that fit are nested inside it (part-in-part nesting).
+        if candidates is None:
+            candidates = _extract_part_candidate_wires(obj, deflection)
+        if len(candidates) < 2:
+            return []
+        ox, oy = _points_min_xy(candidates[0])
+        if getattr(obj, "Shape", None) is not None and obj.Shape.Solids:
+            holes = through_holes(obj, candidates)
+        else:
+            holes = candidates[1:]
+        return [_translate_points(h, (ox, oy)) for h in holes]
+    selected = user_holes.get(obj.Name) or []
     if not selected:
         return []
     local = getattr(panel, "_part_hole_local", {}).get(obj.Name)
