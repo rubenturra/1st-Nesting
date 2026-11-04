@@ -39,3 +39,13 @@ Run with FreeCAD's bundled Python:
 ```
 
 The integration checks exercise real CAD unions, full-width collisions, endpoint/hole/sheet checks, 2D and 3D output, mm/inch conversion, mouse clicks, deletion, saved-document reopening and the main panel/result importer integration.
+
+## Drag to bridge
+
+Press the left button on a part, drag to the neighbouring part and release: the
+bridge is created between the closest points of both outlines. Dragging outside
+the parts (or with the middle button) pans the view. Validation uses outlines
+simplified to 0.02 mm, so bridges are accepted in about a second even next to
+finely sampled curves; the produced parts keep their exact geometry. Sheets
+with more than 150 parts are drawn as outlines only, without part labels (the
+name is shown as a tooltip).

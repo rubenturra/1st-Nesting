@@ -52,6 +52,59 @@ def face(outer, holes=()):
     return shape.Faces[0] if len(shape.Faces) == 1 else shape
 
 
+CHECK_SIMPLIFY = 0.02  # mm; validation geometry only, never the produced parts
+
+
+def simplify_ring(ring, tolerance=CHECK_SIMPLIFY):
+    """Douglas-Peucker on a closed ring (keeps at least 3 points)."""
+    points = [list(p) for p in ring]
+    if len(points) <= 8:
+        return points
+    def reduce(seq):
+        if len(seq) < 3:
+            return seq
+        ax, ay = seq[0]; bx, by = seq[-1]
+        dx, dy = bx-ax, by-ay; length = math.hypot(dx, dy)
+        worst, index = -1.0, 0
+        for i in range(1, len(seq)-1):
+            px, py = seq[i]
+            d = abs(dy*px - dx*py + bx*ay - by*ax)/length if length > 1e-12 else math.hypot(px-ax, py-ay)
+            if d > worst:
+                worst, index = d, i
+        if worst <= tolerance:
+            return [seq[0], seq[-1]]
+        return reduce(seq[:index+1])[:-1] + reduce(seq[index:])
+    # Split at the farthest point from the first one so both halves are open chains.
+    far = max(range(len(points)), key=lambda i: math.dist(points[0], points[i]))
+    closed = points + [points[0]]
+    result = reduce(closed[:far+1])[:-1] + reduce(closed[far:])[:-1]
+    return result if len(result) >= 3 else points
+
+
+def check_face(part):
+    """Simplified face used for bridge validation (cached)."""
+    value = part.get('_check_face')
+    if value is None:
+        value = part['_check_face'] = face(simplify_ring(part['outer']),
+                                           [simplify_ring(h) for h in part['holes']])
+    return value
+
+
+def check_hole_faces(part):
+    value = part.get('_check_holes')
+    if value is None:
+        value = part['_check_holes'] = [face(simplify_ring(h)) for h in part['holes']]
+    return value
+
+
+def point_in_ring(point, ring):
+    x, y = point; inside = False
+    for (x1, y1), (x2, y2) in zip(ring, ring[1:] + ring[:1]):
+        if (y1 > y) != (y2 > y) and x < (x2-x1)*(y-y1)/(y2-y1) + x1:
+            inside = not inside
+    return inside
+
+
 def part_box(part):
     """Cached (xmin, ymin, xmax, ymax) of a part outline."""
     box = part.get('_bbox')
@@ -158,6 +211,31 @@ class BridgeLayout:
                 best = (candidate[0], dict(part=part['index'], point=candidate[1]))
         return best[1] if best else None
 
+    def part_at(self, sheet, point, tolerance):
+        """Part under the point (inside its material) or with an edge within tolerance."""
+        x, y = float(point[0]), float(point[1])
+        for part in self.parts:
+            if part['sheet'] != sheet:
+                continue
+            x0, y0, x1, y1 = part_box(part)
+            if x0 <= x <= x1 and y0 <= y <= y1 and point_in_ring((x, y), part['outer']) and \
+                    not any(point_in_ring((x, y), hole) for hole in part['holes']):
+                return part
+        edge = self.nearest_edge(sheet, point, tolerance)
+        return self.parts[edge['part']] if edge else None
+
+    def closest_points(self, first, second, hint):
+        """Nearest pair of outline points between two parts, starting near hint."""
+        q = nearest_on_ring(hint, second['outer'])[1]
+        p = nearest_on_ring(q, first['outer'])[1]
+        for _ in range(6):
+            q_new = nearest_on_ring(p, second['outer'])[1]
+            p_new = nearest_on_ring(q_new, first['outer'])[1]
+            if math.dist(p_new, p) < 1e-6 and math.dist(q_new, q) < 1e-6:
+                break
+            p, q = p_new, q_new
+        return dict(part=first['index'], point=p), dict(part=second['index'], point=q)
+
     def make_bridge(self, first, second, width_mm):
         width = float(width_mm)
         if not math.isfinite(width) or width <= 0:
@@ -197,19 +275,19 @@ class BridgeLayout:
             if (first_box.XMax < x0-TOLERANCE or x1 < first_box.XMin-TOLERANCE or
                     first_box.YMax < y0-TOLERANCE or y1 < first_box.YMin-TOLERANCE):
                 continue
-            common = strip.common(part['face'])
+            common = strip.common(check_face(part))
             if part['index'] in (a['index'], b['index']):
                 point = p if part['index'] == a['index'] else q
                 cap = Part.Face(Part.Wire([Part.makeCircle(width+extension+.001,
                                                         App.Vector(*point, 0))]))
                 if common.Area <= TOLERANCE or common.cut(cap).Area > TOLERANCE:
                     raise BridgeError('attachment')
-                for hole in part['holes']:
-                    if strip.common(face(hole)).Area > TOLERANCE:
+                for hole in check_hole_faces(part):
+                    if strip.common(hole).Area > TOLERANCE:
                         raise BridgeError('hole_collision')
-            elif common.Area > TOLERANCE or strip.distToShape(part['face'])[0] <= TOLERANCE:
+            elif common.Area > TOLERANCE or strip.distToShape(check_face(part))[0] <= TOLERANCE:
                 raise BridgeError('collision')
-        joined = joined_faces([a['face'], strip, b['face']])
+        joined = joined_faces([check_face(a), strip, check_face(b)])
         if not joined.isValid() or len(joined.Faces) != 1:
             raise BridgeError('attachment')
         for old in self.bridges:

@@ -38,14 +38,23 @@ class BridgeView(ZoomView):
         self._left_start = None
         self._left_last = None
         self._left_panning = False
+        self._drag_part = None
+        self._drag_line = None
         self.setMouseTracking(True)
         self.setCursor(QtCore.Qt.CrossCursor)
+
+    def _scene_point(self, position):
+        point = self.mapToScene(position)
+        return [point.x(), -point.y()]
 
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
             position = event.position().toPoint() if hasattr(event, 'position') else event.pos()
             self._left_start = self._left_last = position
             self._left_panning = False
+            self._drag_line = None
+            # Pressing on a part starts a drag-to-bridge; elsewhere it pans.
+            self._drag_part = self.editor.part_at(self._scene_point(position))
             event.accept()
         elif event.button() == QtCore.Qt.RightButton:
             self.editor.clear_endpoint()
@@ -56,7 +65,21 @@ class BridgeView(ZoomView):
     def mouseMoveEvent(self, event):
         position = event.position().toPoint() if hasattr(event, 'position') else event.pos()
         if self._left_start is not None:
-            if not self._left_panning and (position-self._left_start).manhattanLength() >= QtGui.QApplication.startDragDistance():
+            moved = (position-self._left_start).manhattanLength() >= QtGui.QApplication.startDragDistance()
+            if self._drag_part is not None:
+                if moved:
+                    self.editor.clear_candidate()
+                    start, end = self.mapToScene(self._left_start), self.mapToScene(position)
+                    if self._drag_line is None:
+                        self._drag_line = self.scene().addLine(start.x(), start.y(), end.x(), end.y(),
+                                                               cosmetic_pen('#da7c15', 2.5))
+                        self._drag_line.setZValue(6)
+                    else:
+                        self._drag_line.setLine(start.x(), start.y(), end.x(), end.y())
+                self._left_last = position
+                event.accept()
+                return
+            if not self._left_panning and moved:
                 self._left_panning = True
                 self.setCursor(QtCore.Qt.ClosedHandCursor)
                 self.editor.clear_candidate()
@@ -68,20 +91,26 @@ class BridgeView(ZoomView):
             event.accept()
             return
         if self._pan_position is None and self.editor.pending is not None:
-            point = self.mapToScene(position)
-            self.editor.draw_candidate([point.x(), -point.y()])
+            self.editor.draw_candidate(self._scene_point(position))
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton and self._left_start is not None:
+            position = event.position().toPoint() if hasattr(event, 'position') else event.pos()
+            dragged = self._drag_line is not None
             was_panning = self._left_panning
+            first = self._drag_part
+            if self._drag_line is not None:
+                self.scene().removeItem(self._drag_line)
+                self._drag_line = None
             self._left_start = self._left_last = None
             self._left_panning = False
+            self._drag_part = None
             self.setCursor(QtCore.Qt.CrossCursor)
-            if not was_panning:
-                position = event.position().toPoint() if hasattr(event, 'position') else event.pos()
-                point = self.mapToScene(position)
-                self.editor.choose_edge([point.x(), -point.y()])
+            if dragged:
+                self.editor.bridge_by_drag(first, self._scene_point(position))
+            elif not was_panning:
+                self.editor.choose_edge(self._scene_point(position))
             event.accept()
             return
         super().mouseReleaseEvent(event)
@@ -236,6 +265,30 @@ class BridgeDialog(QtGui.QDialog):
     def snap(self, point):
         tolerance = 9/max(abs(self.view.transform().m11()), 1e-9)
         return self.layout_model.nearest_edge(self.current_sheet(), point, tolerance)
+
+    def part_at(self, point):
+        tolerance = 9/max(abs(self.view.transform().m11()), 1e-9)
+        return self.layout_model.part_at(self.current_sheet(), point, tolerance)
+
+    # Drag from one part and release on the neighbour: bridge at the closest points.
+    def bridge_by_drag(self, first, point):
+        second = self.part_at(point)
+        if first is None or second is None or second['index'] == first['index']:
+            self.set_status('drag_target', True)
+            return
+        self.clear_endpoint()
+        QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+        try:
+            a, b = self.layout_model.closest_points(first, second, point)
+            self.layout_model.add_bridge(a, b, self.width_mm)
+        except BridgeError as exc:
+            self.set_status(exc.key, True)
+            return
+        finally:
+            QtGui.QApplication.restoreOverrideCursor()
+        self.refresh_table()
+        self.draw_scene()
+        self.set_status('added')
 
     def choose_edge(self, point):
         endpoint = self.snap(point)

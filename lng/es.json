@@ -590,7 +590,7 @@
   "engine.error": "Falló la actualización del motor:\n%s",
   "engine.busy": "Se está realizando una distribución o actualización. Inténtalo más tarde.",
   "bridge.title": "Crear puentes",
-  "bridge.hint": "Haga clic en un borde exterior de la primera parte y luego en un borde exterior de otra parte para crear un puente. Utilice la rueda del ratón para hacer zoom y arrastre con el botón izquierdo del ratón para desplazarse.",
+  "bridge.hint": "Pulsa en una pieza y arrastra hasta la pieza de al lado, y suelta: el puente se pone donde están más cerca. También puedes hacer clic en un borde exterior de cada pieza. Arrastra fuera de las piezas, o con la rueda pulsada, para desplazarte; usa la rueda para el zoom.",
   "bridge.sheet": "Hoja",
   "bridge.width": "Ancho del puente",
   "bridge.cancel_point": "Cancelar primer punto",
@@ -604,9 +604,9 @@
   "bridge.delete": "Eliminar seleccionado",
   "bridge.item": "Puente %d",
   "bridge.cut_contours": "Contornos de corte unidos",
-  "bridge.choose_first": "Elija el primer borde exterior.",
+  "bridge.choose_first": "Arrastra de una pieza a la de al lado, o elige el primer borde exterior.",
   "bridge.choose_second": "Elija un borde exterior de otra parte. Haga clic derecho para cancelar el primer punto.",
-  "bridge.added": "Puente añadido. Elija dos bordes más para agregar otro puente.",
+  "bridge.added": "Puente añadido. Arrastra entre otras dos piezas para añadir otro puente.",
   "bridge.no_result": "Ejecute primero el anidamiento para crear un resultado.",
   "bridge.geometry": "El resultado del anidamiento contiene geometría no válida o no compatible.",
   "bridge.width_invalid": "Introduzca un ancho de puente finito y positivo.",
@@ -672,5 +672,6 @@
   "sheet_thickness.nothing": "Ninguna pieza tiene chapa de su espesor (chapas: %s). No se ha anidado nada.",
   "sheet_thickness.batch_done_title": "Anidado por espesores",
   "sheet_thickness.batch_done": "Anidado terminado:\n\n%s",
-  "sheet_thickness.skipped_parts": "Estas piezas NO se han anidado porque no hay chapa de su espesor (siguen en rojo):\n%s"
+  "sheet_thickness.skipped_parts": "Estas piezas NO se han anidado porque no hay chapa de su espesor (siguen en rojo):\n%s",
+  "bridge.drag_target": "Suelta el ratón encima de otra pieza para crear el puente."
 }
