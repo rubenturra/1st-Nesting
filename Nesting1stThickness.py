@@ -197,14 +197,20 @@ class ThicknessChecker:
         return True
 
     def plan_nesting(self):
-        """Return the per-thickness batches, or None after explaining why nesting
-        cannot start."""
+        """Return (batches, skipped labels), or (None, []) after explaining why
+        nesting cannot start. Skipped parts have no sheet of their thickness."""
         from Nesting1stSheetSpec import plan_batches
         result = self.measure()
         plan = plan_batches(getattr(self.panel, 'offcuts', []) or [], result['parts'], result['labels'])
         problem = plan['problem']
+        skipped = plan.get('skipped') or []
+        if skipped:
+            self._apply_sheet_thickness(result)
+            self._highlight(result)
+        skipped_lines = [result['labels'].get(n, n) + ': ' + self._values(result['parts'][n])
+                         for n in skipped]
         if problem is None:
-            return plan['batches']
+            return plan['batches'], skipped_lines
         message = QtGui.QMessageBox(self.panel.form)
         message.setIcon(QtGui.QMessageBox.Critical)
         message.setWindowTitle(tr('sheet_thickness.block_title'))
@@ -214,17 +220,13 @@ class ThicknessChecker:
             message.setText(tr('sheet_thickness.sheets_without_thickness') % '\n'.join(problem['labels']))
         elif kind == 'nothing':
             message.setText(tr('sheet_thickness.nothing') % values)
+            if skipped_lines:
+                message.setDetailedText('\n'.join(skipped_lines))
         else:
-            if kind == 'parts':
-                self._apply_sheet_thickness(result)
-                self._highlight(result)
             lines = [result['labels'].get(n, n) + (': ' + self._values(result['parts'][n])
                      if result['parts'].get(n) else '') for n in problem['names']]
             shown = '\n'.join(lines[:15] + (['…'] if len(lines) > 15 else []))
-            if kind == 'parts':
-                message.setText(tr('sheet_thickness.parts_without_sheet') % (values, shown))
-            else:
-                message.setText(tr('sheet_thickness.flat_parts') % shown)
+            message.setText(tr('sheet_thickness.flat_parts') % shown)
             if len(lines) > 15:
                 message.setDetailedText('\n'.join(lines))
         message.setStandardButtons(QtGui.QMessageBox.Ok)
@@ -232,7 +234,7 @@ class ThicknessChecker:
             message.exec()
         else:
             message.exec_()
-        return None
+        return None, []
 
     def refresh(self, warn=True, force=False):
         self.timer.stop()

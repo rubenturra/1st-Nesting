@@ -54,9 +54,14 @@ class PlanTests(unittest.TestCase):
         plan = S.plan_batches([{'id': 1, 'thickness': 10}, {'id': 2, 'thickness': 20}], {'a': [10.0]})
         self.assertEqual([b['thickness'] for b in plan['batches']], [10.0])
 
-    def test_part_without_sheet_blocks(self):
+    def test_part_without_sheet_is_left_out(self):
         plan = S.plan_batches([{'id': 1, 'thickness': 10}], {'b': [8.0], 'a': [10.0]}, {'b': 'Pletina'})
-        self.assertEqual(plan['problem'], {'kind': 'parts', 'names': ['b'], 'values': [10.0]})
+        self.assertIsNone(plan['problem'])
+        self.assertEqual(plan['skipped'], ['b'])
+        self.assertEqual(plan['batches'], [{'thickness': 10.0, 'names': ['a'], 'sheet_ids': [1]}])
+        nothing = S.plan_batches([{'id': 1, 'thickness': 10}], {'b': [8.0]})
+        self.assertEqual(nothing['problem']['kind'], 'nothing')
+        self.assertEqual(nothing['skipped'], ['b'])
         self.assertEqual(S.unmatched_parts([{'thickness': 10}, {'thickness': 8}], {'b': [8.0]}), set())
 
     def test_missing_sheet_thickness_and_flat_parts(self):

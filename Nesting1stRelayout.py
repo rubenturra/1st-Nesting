@@ -71,6 +71,9 @@ class NestingRelayoutManager:
         means more holes, so the face with holes points upward. Return an
         identity rotation when no face is available or evaluation fails.
         """
+        from Nesting1stPreviewDoc import keep_model_orientation
+        if keep_model_orientation():
+            return App.Rotation()
         try:
             # Rank faces by area before choosing the face whose normal will point upward.
             faces = sorted(obj.Shape.Faces, key=lambda f: f.Area, reverse=True)

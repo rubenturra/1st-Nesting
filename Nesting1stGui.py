@@ -3510,9 +3510,14 @@ class NestingTaskPanel:
 
                 return
 
-            batches = self._thickness_checker.plan_nesting()
+            batches, skipped = self._thickness_checker.plan_nesting()
             if not batches:
                 return
+            self._batch_skipped = skipped
+            if skipped:
+                App.Console.PrintWarning(
+                    "1st Nesting: not nested (no sheet of their thickness): %s\n"
+                    % "; ".join(skipped))
 
             if len(batches) == 1 and not batches[0]["thickness"]:
                 # No sheet thickness: classic single run with everything.
@@ -3571,13 +3576,17 @@ class NestingTaskPanel:
         self._batch_queue = []
         self._batch_current = None
         self._batch_part_names = self._batch_sheet_ids = None
-        if success and getattr(self, "_batch_total", 0) > 1:
-            QtGui.QMessageBox.information(
-                self.form, tr('sheet_thickness.batch_done_title'),
-                tr('sheet_thickness.batch_done') % "\n".join(
-                    "%s → %s" % (self._thickness_checker._dimension(b["thickness"]),
-                                 b.get("document_label", ""))
-                    for b in self._batch_done))
+        skipped = getattr(self, "_batch_skipped", None) or []
+        if success and (getattr(self, "_batch_total", 0) > 1 or skipped):
+            text = tr('sheet_thickness.batch_done') % "\n".join(
+                "%s → %s" % (self._thickness_checker._dimension(b["thickness"]),
+                             b.get("document_label", ""))
+                for b in self._batch_done)
+            if skipped:
+                text += "\n\n" + tr('sheet_thickness.skipped_parts') % "\n".join(skipped[:15] + (
+                    ["…"] if len(skipped) > 15 else []))
+            QtGui.QMessageBox.information(self.form, tr('sheet_thickness.batch_done_title'), text)
+        self._batch_skipped = []
 
     # Name the result document after its thickness, e.g. Nesting_Result_10mm.
     def _label_batch_result(self, batch):

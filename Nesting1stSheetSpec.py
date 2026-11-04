@@ -130,12 +130,12 @@ def unmatched_parts(materials, parts):
 def plan_batches(materials, parts, labels=None):
     """Split a job by thickness: one nesting run per sheet thickness with parts.
 
-    Returns {"problem": None | {...}, "batches": [...]}; each batch is
+    Returns {"problem": None | {...}, "skipped": [...], "batches": [...]};
+    "skipped" lists 3D parts without a sheet of their thickness (left out). Each batch is
     {"thickness": t, "sheet_ids": [...], "names": [...]}. Without any sheet
     thickness there is one batch with everything (thickness 0).
     Problems block nesting:
       sheets_without_thickness - some stock has a thickness and some has not
-      parts                    - parts without a sheet of their thickness
       flat_parts               - DXF/SVG parts while several thicknesses run
       nothing                  - no sheet thickness matches any part
     """
@@ -145,15 +145,16 @@ def plan_batches(materials, parts, labels=None):
     order = lambda names: sorted(names, key=lambda n: str(labels.get(n, n)).lower())
     values = sheet_thickness_values(materials)
     if not values:
-        return {"problem": None, "batches": [{"thickness": 0.0,
+        return {"problem": None, "skipped": [], "batches": [{"thickness": 0.0,
                 "sheet_ids": [m.get("id") for m in materials], "names": list(parts)}]}
     missing = [m for m in materials if not material_thickness(m)]
     if missing:
         return {"problem": {"kind": "sheets_without_thickness",
-                            "labels": [str(m.get("label", "")) for m in missing]}, "batches": []}
-    bad = unmatched_parts(materials, parts)
-    if bad:
-        return {"problem": {"kind": "parts", "names": order(bad), "values": values}, "batches": []}
+                            "labels": [str(m.get("label", "")) for m in missing]},
+                "skipped": [], "batches": []}
+    # Parts without a sheet of their thickness stay red and are not nested.
+    skipped = order(unmatched_parts(materials, parts))
+    parts = {n: d for n, d in parts.items() if n not in skipped}
     batches = []
     for value in values:
         names = [n for n, depths in parts.items()
@@ -169,10 +170,12 @@ def plan_batches(materials, parts, labels=None):
         if len(batches) == 1:
             batches[0]["names"].extend(flat)
         elif len(batches) > 1:
-            return {"problem": {"kind": "flat_parts", "names": order(flat)}, "batches": []}
+            return {"problem": {"kind": "flat_parts", "names": order(flat)},
+                    "skipped": skipped, "batches": []}
     if not batches:
-        return {"problem": {"kind": "nothing", "values": values}, "batches": []}
-    return {"problem": None, "batches": batches}
+        return {"problem": {"kind": "nothing", "values": values, "names": skipped},
+                "skipped": skipped, "batches": []}
+    return {"problem": None, "skipped": skipped, "batches": batches}
 
 
 def common_spec(materials):

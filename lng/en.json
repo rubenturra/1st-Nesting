@@ -668,9 +668,9 @@
   "sheet_spec.col_thickness": "Thickness",
   "sheet_spec.col_thickness_tooltip": "Sheet thickness in the panel units. Double-click to change it; leave empty if unknown.",
   "sheet_thickness.sheets_without_thickness": "These sheets or offcuts have no thickness:\n\n%s\n\nGive them a thickness (double-click the Thickness column) or remove them, so each one is nested with the right parts.",
-  "sheet_thickness.parts_without_sheet": "There are sheets of %s, but these parts have no sheet of their thickness:\n\n%s\n\nAdd a sheet of that thickness or remove the parts from the list.",
   "sheet_thickness.flat_parts": "These DXF/SVG parts have no thickness, so they cannot be assigned to one of the thickness nestings:\n\n%s\n\nNest them separately.",
-  "sheet_thickness.nothing": "No part matches the sheet thicknesses (%s).",
+  "sheet_thickness.nothing": "No part has a sheet of its thickness (sheets: %s). Nothing was nested.",
   "sheet_thickness.batch_done_title": "Nesting by thickness",
-  "sheet_thickness.batch_done": "One nesting was made for each thickness:\n\n%s"
+  "sheet_thickness.batch_done": "Nesting finished:\n\n%s",
+  "sheet_thickness.skipped_parts": "These parts were NOT nested because there is no sheet of their thickness (they stay red):\n%s"
 }

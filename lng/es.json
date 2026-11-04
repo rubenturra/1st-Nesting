@@ -668,9 +668,9 @@
   "sheet_spec.col_thickness": "Espesor",
   "sheet_spec.col_thickness_tooltip": "Espesor de la chapa en las unidades del panel. Haz doble clic para cambiarlo; déjalo vacío si no lo sabes.",
   "sheet_thickness.sheets_without_thickness": "Estas chapas o retales no tienen espesor:\n\n%s\n\nPonles espesor (doble clic en la columna Espesor) o elimínalas, para que cada una se anide con sus piezas.",
-  "sheet_thickness.parts_without_sheet": "Hay chapas de %s, pero estas piezas no tienen chapa de su espesor:\n\n%s\n\nAñade una chapa de ese espesor o quita las piezas de la lista.",
   "sheet_thickness.flat_parts": "Estas piezas DXF/SVG no tienen espesor y no se pueden asignar a ninguno de los anidados por espesor:\n\n%s\n\nAnídalas aparte.",
-  "sheet_thickness.nothing": "Ninguna pieza coincide con los espesores de las chapas (%s).",
+  "sheet_thickness.nothing": "Ninguna pieza tiene chapa de su espesor (chapas: %s). No se ha anidado nada.",
   "sheet_thickness.batch_done_title": "Anidado por espesores",
-  "sheet_thickness.batch_done": "Se ha hecho un anidado por cada espesor:\n\n%s"
+  "sheet_thickness.batch_done": "Anidado terminado:\n\n%s",
+  "sheet_thickness.skipped_parts": "Estas piezas NO se han anidado porque no hay chapa de su espesor (siguen en rojo):\n%s"
 }
