@@ -313,6 +313,7 @@ The workbench is Python code loaded by FreeCAD. The nesting executable is mainta
 | `Nesting1stPreviewDoc.py`, `Nesting1stRelayout.py`, `Nesting1stRotate.py` | Preview geometry, layout and orientation |
 | `Nesting1stImport2D.py`, `Nesting1stOffcuts.py`, `Nesting1stAddSheet.py` | Part imports and stock creation |
 | `Nesting1stSheetSpec.py`, `Nesting1stOffcutLibrary.py`, `Nesting1stStock.py` | Sheet thickness/material, offcut library and sheet stock |
+| `Nesting1stQuantity.py` | Part quantity stored on the design object ([details](docs/PART_QUANTITY.md)) |
 | `Nesting1stOffcutShowDialog.py`, `Nesting1stPartHoles.py` | Stock editing and selectable holes |
 | `Nesting1stGrain*.py` | Texture alignment, group model and manual editor |
 | `Nesting1stExport.py`, `Nesting1stRuntime.py` | Polygon export and engine/job protocol |

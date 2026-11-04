@@ -2683,6 +2683,10 @@ class NestingTaskPanel:
                     if new_obj is None:
                         App.Console.PrintError(tr('failed_to_create_preview_object_for_s') % getattr(target, "Label", "<unknown>"))
                         continue
+
+                    from Nesting1stQuantity import remember_source, read_quantity
+                    remember_source(new_obj, target)
+                    design_quantity = read_quantity(target)
                     
                     # --- FIX: PartDesign::Body in preview may have invalid Shape/BoundBox; use Tip.Shape as fallback ---
                     try:
@@ -2824,7 +2828,7 @@ class NestingTaskPanel:
                         name_item.setData(QtCore.Qt.UserRole + 1, [new_obj.Name])
                     self.table.setItem(insert_pos, 0, name_item)
                     # Column 1: Qty (defaults to 1)
-                    qty_item = ui_widget(QtGui.QTableWidgetItem, "1")
+                    qty_item = ui_widget(QtGui.QTableWidgetItem, str(design_quantity or 1))
                     qty_item.setTextAlignment(QtCore.Qt.AlignCenter)
                     self.table.setItem(insert_pos, 1, qty_item)
                     # Column 2: Rotation degree defaults (centered)
@@ -2981,6 +2985,18 @@ class NestingTaskPanel:
             self.select_preview_objects_for_row(row)
         except Exception:
             App.Console.PrintError(tr('on_cell_clicked_failed') + traceback.format_exc())
+
+    # Write a table quantity back to the design object's Cantidad property.
+    def _sync_quantity_to_design(self, row, quantity):
+        try:
+            from Nesting1stQuantity import source_of, write_quantity
+            doc = App.getDocument(self.preview_doc_name) if self.preview_doc_name in App.listDocuments() else None
+            name = self._primary_name_for_row(row) if doc else None
+            source = source_of(doc.getObject(name)) if name else None
+            if source is not None:
+                write_quantity(source, quantity)
+        except Exception:
+            App.Console.PrintWarning("1st Nesting: could not store the quantity on the design part\n")
 
     # Handle Qty and Rotation edits.
     def on_item_changed(self, item):
@@ -3162,6 +3178,8 @@ class NestingTaskPanel:
                     )
                 finally:
                     self._suppress_qty_update = False
+
+            self._sync_quantity_to_design(row, quantity)
 
             # Keep exactly one preview object associated with the row.
             # The exported JSON reads the quantity from this table cell.
@@ -4743,7 +4761,8 @@ class NestingTaskPanel:
                 name_item.setData(QtCore.Qt.UserRole + 1, [obj.Name])
             self.table.setItem(insert_pos, 0, name_item)
 
-            qty_item = ui_widget(QtGui.QTableWidgetItem, "1")
+            from Nesting1stQuantity import read_quantity, source_of
+            qty_item = ui_widget(QtGui.QTableWidgetItem, str(read_quantity(source_of(obj)) or 1))
             qty_item.setTextAlignment(QtCore.Qt.AlignCenter)
             self.table.setItem(insert_pos, 1, qty_item)
 
