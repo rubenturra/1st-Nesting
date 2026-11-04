@@ -1865,9 +1865,14 @@ def export_nesting_steps(panel):
                 except Exception:
                     pass
 
-                candidates = _extract_part_candidate_wires(obj, boundary_resolution)
+                # Fast mode: lighter contours, except for parts whose holes were
+                # marked by hand (those are matched at the panel's sampling).
+                deflection = boundary_resolution
+                if obj.Name not in (getattr(panel, "_part_holes", None) or {}):
+                    deflection = _read_boundary_deflection(panel, boundary_resolution)
+                candidates = _extract_part_candidate_wires(obj, deflection)
                 preview_origins[primary_name] = _points_min_xy(candidates[0])
-                points = _extract_part_points(obj, boundary_resolution, candidates=candidates)
+                points = _extract_part_points(obj, deflection, candidates=candidates)
 
                 if len(points) < 3:
                     App.Console.PrintWarning(
@@ -1890,10 +1895,10 @@ def export_nesting_steps(panel):
                 part_id = "part_%d" % len(parts)
 
                 # Selected inner contours (holes) marked in the part dialog.
-                selected_holes = current_selected_holes(panel, obj, boundary_resolution, candidates=candidates)
+                selected_holes = current_selected_holes(panel, obj, deflection, candidates=candidates)
 
                 from Nesting1stRuntime import snapshot_part
-                snapshots[part_id] = snapshot_part(obj, boundary_resolution, candidates=candidates)
+                snapshots[part_id] = snapshot_part(obj, deflection, candidates=candidates)
 
                 # A grain-restricted part may only rotate 0 or 180 degrees so
                 # the texture direction is preserved during nesting.
