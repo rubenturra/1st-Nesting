@@ -52,6 +52,15 @@ def face(outer, holes=()):
     return shape.Faces[0] if len(shape.Faces) == 1 else shape
 
 
+def part_box(part):
+    """Cached (xmin, ymin, xmax, ymax) of a part outline."""
+    box = part.get('_bbox')
+    if box is None:
+        xs = [p[0] for p in part['outer']]; ys = [p[1] for p in part['outer']]
+        box = part['_bbox'] = (min(xs), min(ys), max(xs), max(ys))
+    return box
+
+
 class Lazy:
     """A value computed the first time a _LazyPart key is read."""
     def __init__(self, compute):
@@ -141,10 +150,7 @@ class BridgeLayout:
                 continue
             # Cheap bounding-box test first: hundreds of parts are checked on
             # every mouse move, only the few near the cursor need the exact one.
-            box = part.get('_bbox')
-            if box is None:
-                xs = [p[0] for p in part['outer']]; ys = [p[1] for p in part['outer']]
-                box = part['_bbox'] = (min(xs), min(ys), max(xs), max(ys))
+            box = part_box(part)
             if x < box[0]-tolerance or x > box[2]+tolerance or y < box[1]-tolerance or y > box[3]+tolerance:
                 continue
             candidate = nearest_on_ring(point, part['outer'])
@@ -186,9 +192,10 @@ class BridgeLayout:
         for part in self.parts:
             if part['sheet'] != a['sheet']:
                 continue
-            first_box, second_box = strip.BoundBox, part['face'].BoundBox
-            if (first_box.XMax < second_box.XMin-TOLERANCE or second_box.XMax < first_box.XMin-TOLERANCE or
-                    first_box.YMax < second_box.YMin-TOLERANCE or second_box.YMax < first_box.YMin-TOLERANCE):
+            # Outline bounding box first: only parts near the strip build their face.
+            first_box, (x0, y0, x1, y1) = strip.BoundBox, part_box(part)
+            if (first_box.XMax < x0-TOLERANCE or x1 < first_box.XMin-TOLERANCE or
+                    first_box.YMax < y0-TOLERANCE or y1 < first_box.YMin-TOLERANCE):
                 continue
             common = strip.common(part['face'])
             if part['index'] in (a['index'], b['index']):
