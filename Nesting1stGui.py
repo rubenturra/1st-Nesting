@@ -126,6 +126,15 @@ class _ProportionalHeader(QtGui.QHeaderView):
 
 
 # Coordinate nesting settings, material/part tables, preview editing and nesting CLI execution.
+def parallel_thickness_enabled():
+    """True (default): nest every thickness at the same time."""
+    try:
+        return bool(App.ParamGet("User parameter:BaseApp/Preferences/Mod/IPNesting")
+                    .GetBool("ParallelThickness", True))
+    except Exception:
+        return True
+
+
 class NestingTaskPanel:
     # Nesting CLI settings exposed in the right-hand column, mapped to their
     # preference keys and defaults. "text" entries are QLineEdit fields, "combo"
@@ -3562,9 +3571,126 @@ class NestingTaskPanel:
                     "1st Nesting: %d nestings by thickness: %s\n" % (
                         len(batches), ", ".join(self._thickness_checker._dimension(b["thickness"])
                                                 for b in batches)))
+            if len(batches) > 1 and parallel_thickness_enabled():
+                self._run_batches_parallel(list(batches))
+                return
             self._start_next_batch()
         except Exception:
             self._nesting_manager._finish_failure(traceback.format_exc())
+
+    # All thicknesses at once: one nesting engine per thickness, each in its own
+    # folder, so the CPU cores are used together instead of one run after another.
+    def _run_batches_parallel(self, batches):
+        import shutil, subprocess, tempfile, json as _json
+        from Nesting1stExport import export_nesting_steps
+        from Nesting1stResult import NestingResultImporter, _load_json_file
+        from Nesting1stRuntime import find_executable
+        directory = os.path.abspath(os.path.dirname(__file__))
+        cli = find_executable(directory)
+        if not cli or self._nesting_manager.is_running():
+            self._start_next_batch()
+            return
+        self._batch_queue = []
+        work = tempfile.mkdtemp(prefix="nesting_espesores_")
+        jobs = []
+        progress = QtGui.QProgressDialog("", tr('common.cancel'), 0, len(batches), self.form)
+        progress.setWindowTitle(tr('sheet_thickness.batch_done_title'))
+        progress.setWindowModality(QtCore.Qt.WindowModal)
+        progress.setMinimumDuration(0)
+        progress.setMinimumWidth(460)
+        self.run_btn.setEnabled(False)
+        try:
+            for k, batch in enumerate(batches):
+                progress.setLabelText(tr('sheet_thickness.parallel_preparing') % (
+                    self._thickness_checker._dimension(batch["thickness"]), k+1, len(batches)))
+                QtGui.QApplication.processEvents()
+                self._batch_part_names = set(batch["names"])
+                self._batch_sheet_ids = set(batch["sheet_ids"])
+                steps = export_nesting_steps(self)
+                ok = False
+                try:
+                    while True:
+                        next(steps)
+                        QtGui.QApplication.processEvents()
+                except StopIteration as done:
+                    ok = done.value is True
+                if not ok:
+                    raise RuntimeError(tr('failed_to_generate_input_json'))
+                folder = os.path.join(work, "espesor_%d" % k)
+                os.makedirs(folder)
+                for name in ("input.json", "nesting_session.json"):
+                    shutil.copy2(os.path.join(directory, name), os.path.join(folder, name))
+                data = _load_json_file(os.path.join(folder, "input.json"))
+                log = open(os.path.join(folder, "clinesting.log"), "wb")
+                proc = subprocess.Popen([cli, "--input", os.path.join(folder, "input.json")], cwd=folder,
+                                        stdout=log, stderr=subprocess.STDOUT,
+                                        creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
+                jobs.append(dict(batch=batch, folder=folder, proc=proc, log=log, done=False,
+                                 cancel=os.path.join(folder, data.get("output", {}).get("cancelFile", ".cancel"))))
+            self._batch_part_names = self._batch_sheet_ids = None
+            self._batch_done = []
+            start = time.time()
+            last_importer = None
+            while not all(job["done"] for job in jobs):
+                if progress.wasCanceled():
+                    for job in jobs:
+                        if not job["done"]:
+                            open(job["cancel"], "w").close()  # cooperative stop
+                    progress.setLabelText(tr('common.cancel') + "...")
+                for job in jobs:
+                    if job["done"] or job["proc"].poll() is None:
+                        continue
+                    job["done"] = True
+                    job["log"].close()
+                    result = _load_json_file(os.path.join(job["folder"], "result.json"))
+                    session = _load_json_file(os.path.join(job["folder"], "nesting_session.json"))
+                    if isinstance(result, dict) and isinstance(session, dict):
+                        importer = NestingResultImporter(self)
+                        importer._show_result_view = lambda: None   # fit only once, at the end
+                        if importer.import_result(result_data=result, session_data=session, show_summary=False):
+                            from Nesting1stSheetSpec import format_number
+                            label = "Nesting_Result_%smm" % format_number(job["batch"]["thickness"]).replace(".", ",")
+                            importer.result_doc.Label = label
+                            job["batch"]["document_label"] = label
+                            self._batch_done.append(job["batch"])
+                            last_importer = importer
+                running = sum(1 for job in jobs if not job["done"])
+                progress.setValue(len(jobs) - running)
+                if not progress.wasCanceled():
+                    progress.setLabelText(tr('sheet_thickness.parallel_running') % (
+                        len(jobs), len(jobs) - running, len(jobs), time.time() - start))
+                QtGui.QApplication.processEvents()
+                time.sleep(0.2)
+            progress.close()
+            if last_importer is not None:
+                del last_importer._show_result_view
+                last_importer._show_result_view()
+            skipped = getattr(self, "_batch_skipped", None) or []
+            if self._batch_done:
+                text = tr('sheet_thickness.batch_done') % "\n".join(
+                    "%s → %s" % (self._thickness_checker._dimension(b["thickness"]), b.get("document_label", ""))
+                    for b in self._batch_done)
+                if skipped:
+                    text += "\n\n" + tr('sheet_thickness.skipped_parts') % "\n".join(skipped[:15])
+                QtGui.QMessageBox.information(self.form, tr('sheet_thickness.batch_done_title'), text)
+        except Exception:
+            progress.close()
+            for job in jobs:
+                if job["proc"].poll() is None:
+                    job["proc"].kill()
+            App.Console.PrintError(traceback.format_exc())
+            QtGui.QMessageBox.critical(self.form, tr('nesting_failed'), traceback.format_exc()[-600:])
+        finally:
+            self._batch_part_names = self._batch_sheet_ids = None
+            self._batch_current = None
+            self._batch_skipped = []
+            self.run_btn.setEnabled(True)
+            for job in jobs:
+                try:
+                    job["log"].close()
+                except Exception:
+                    pass
+            shutil.rmtree(work, ignore_errors=True)
 
     def _start_nesting_run(self):
         input_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "input.json")

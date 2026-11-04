@@ -673,5 +673,7 @@
   "sheet_thickness.batch_done_title": "Anidado por espesores",
   "sheet_thickness.batch_done": "Anidado terminado:\n\n%s",
   "sheet_thickness.skipped_parts": "Estas piezas NO se han anidado porque no hay chapa de su espesor (siguen en rojo):\n%s",
-  "bridge.drag_target": "Suelta el ratón encima de otra pieza para crear el puente."
+  "bridge.drag_target": "Suelta el ratón encima de otra pieza para crear el puente.",
+  "sheet_thickness.parallel_preparing": "Preparando %s (%d de %d)...",
+  "sheet_thickness.parallel_running": "Anidando %d espesores a la vez: %d de %d terminados (%.0f s)"
 }

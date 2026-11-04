@@ -34,7 +34,11 @@ When the sheets and offcuts have thicknesses, **Run nesting** makes one nesting
 per thickness, one after another: each run uses only the sheets of that
 thickness and the 3D parts of the same thickness. Each result opens in its own
 document, labelled `Nesting_Result_10mm`, `Nesting_Result_20mm`, … and a summary
-lists them at the end. Sheet thicknesses without parts are skipped.
+lists them at the end. Sheet thicknesses without parts are skipped. The nesting engines of all thicknesses run at the same time, each in its
+own folder, so several CPU cores are used together
+(`ParallelThickness=False` runs them one after another). Every placed part
+gets its own colour in the result (`ColourfulResults=False` keeps the preview
+colours).
 
 Parts without a sheet of their thickness are marked red and left out: the other
 parts are nested and the final summary lists the ones that were not. Nesting

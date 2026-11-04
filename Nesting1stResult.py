@@ -382,6 +382,7 @@ class NestingResultImporter(object):
             )
 
             self._source_shapes = {}
+            self._colour_order = []
             self._prepare_maps()
 
             self.preview_doc = (
@@ -1100,6 +1101,15 @@ class NestingResultImporter(object):
             shape.Placement = transform.multiply(shape.Placement)
             result_object.Shape = shape
             display = source_part.get("display", {})
+            if colourful_results():
+                # One colour per placed part, like the bridge documents.
+                display = {}
+                try:
+                    from Nesting1stBridgeModel import style_component
+                    style_component(result_object.ViewObject, len(self._colour_order))
+                    self._colour_order.append(result_object.Name)
+                except Exception:
+                    pass
             try:
                 view = result_object.ViewObject
                 if "shape_color" in display:
@@ -1598,6 +1608,15 @@ class NestingResultImporter(object):
 # ----------------------------------------------------------------------
 # Process manager
 # ----------------------------------------------------------------------
+
+def colourful_results():
+    """True (default): every placed part gets its own colour in Nesting_Result."""
+    try:
+        return bool(App.ParamGet("User parameter:BaseApp/Preferences/Mod/IPNesting")
+                    .GetBool("ColourfulResults", True))
+    except Exception:
+        return True
+
 
 # Starts the configured nesting CLI and waits asynchronously for result.json.
 class NestingProcessManager(object):

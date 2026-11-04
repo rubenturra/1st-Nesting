@@ -673,5 +673,7 @@
   "sheet_thickness.batch_done_title": "Nesting by thickness",
   "sheet_thickness.batch_done": "Nesting finished:\n\n%s",
   "sheet_thickness.skipped_parts": "These parts were NOT nested because there is no sheet of their thickness (they stay red):\n%s",
-  "bridge.drag_target": "Release the mouse over another part to create the bridge."
+  "bridge.drag_target": "Release the mouse over another part to create the bridge.",
+  "sheet_thickness.parallel_preparing": "Preparing %s (%d of %d)...",
+  "sheet_thickness.parallel_running": "Nesting %d thicknesses at the same time: %d of %d finished (%.0f s)"
 }
