@@ -609,7 +609,7 @@
   "bridge.added": "Bridge added. Drag between two more parts to add another bridge.",
   "bridge.no_result": "Run nesting first to create a result.",
   "bridge.geometry": "The nesting result contains invalid or unsupported geometry.",
-  "bridge.width_invalid": "Enter a positive, finite bridge width.",
+  "bridge.width_invalid": "Enter a bridge width greater than 0 and at most 100 mm.",
   "bridge.different_parts": "Choose edges on two different parts.",
   "bridge.same_sheet": "Both parts must be on the same sheet.",
   "bridge.edge_required": "Click near an outer edge of a part.",

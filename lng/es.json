@@ -609,7 +609,7 @@
   "bridge.added": "Puente añadido. Arrastra entre otras dos piezas para añadir otro puente.",
   "bridge.no_result": "Ejecute primero el anidamiento para crear un resultado.",
   "bridge.geometry": "El resultado del anidamiento contiene geometría no válida o no compatible.",
-  "bridge.width_invalid": "Introduzca un ancho de puente finito y positivo.",
+  "bridge.width_invalid": "Introduce un ancho de puente mayor que 0 y como máximo de 100 mm.",
   "bridge.different_parts": "Elija bordes en dos partes diferentes.",
   "bridge.same_sheet": "Ambas partes deben estar en la misma hoja.",
   "bridge.edge_required": "Haga clic cerca de un borde exterior de una pieza.",

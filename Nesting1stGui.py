@@ -294,8 +294,16 @@ class NestingTaskPanel:
         self.layout = QtGui.QVBoxLayout(main_page)
         setup_page = QtGui.QWidget()
         self.setup_layout = QtGui.QVBoxLayout(setup_page)
-        self.tabs.addTab(main_page, "")
-        self.tabs.addTab(setup_page, "")
+        # Each tab scrolls on its own so the tab bar always stays visible.
+        for page in (main_page, setup_page):
+            area = QtGui.QScrollArea()
+            area.setWidgetResizable(True)
+            area.setFrameShape(QtGui.QFrame.NoFrame)
+            area.setWidget(page)
+            self.tabs.addTab(area, "")
+        self._fit_timer = QtCore.QTimer(self.form)
+        self._fit_timer.timeout.connect(self._fit_to_task_view)
+        self._fit_timer.start(400)
         ui_call(self.tabs, 'setTabText', 0, tr('tab.nesting'))
         ui_call(self.tabs, 'setTabText', 1, tr('tab.setup'))
 
@@ -3624,7 +3632,26 @@ class NestingTaskPanel:
         # Result documents must be selectable while continuous nesting runs.
         return True
 
+    # Keep the panel as tall as the Tasks view, so only the tab contents scroll.
+    def _fit_to_task_view(self):
+        try:
+            area = self.form.parentWidget()
+            while area is not None and not isinstance(area, QtGui.QScrollArea):
+                area = area.parentWidget()
+            if area is None or area.widget() is None:
+                return
+            top = self.form.mapTo(area.widget(), QtCore.QPoint(0, 0)).y()
+            height = max(320, area.viewport().height() - top - 12)
+            if abs(self.form.height() - height) > 2 or self.form.minimumHeight() != height:
+                self.form.setFixedHeight(height)
+        except (RuntimeError, AttributeError):
+            pass
+
     def reject(self):
+        try:
+            self._fit_timer.stop()
+        except (RuntimeError, AttributeError):
+            pass
         self._thickness_checker.timer.stop()
         self._nesting_manager.shutdown()
         if getattr(self, "_gpu_discovery", None) is not None:

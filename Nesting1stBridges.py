@@ -2,7 +2,7 @@
 from PySide import QtCore, QtGui
 from Nesting1stLanguages import tr, ui_call, ui_widget, register_window
 from Nesting1stGrainMatch import ZoomView
-from Nesting1stBridgeModel import BridgeError, load_result, create_document, from_mm, to_mm
+from Nesting1stBridgeModel import BridgeError, load_result, create_document, from_mm, to_mm, MAX_BRIDGE_WIDTH
 from Nesting1stResultSVG import _colour
 
 
@@ -214,7 +214,7 @@ class BridgeDialog(QtGui.QDialog):
         self._unit_guard = True
         try:
             self.width_spin.setDecimals(7 if self.units == 'inch' else 4)
-            self.width_spin.setRange(from_mm(.001, self.units), from_mm(1000000, self.units))
+            self.width_spin.setRange(from_mm(.001, self.units), from_mm(MAX_BRIDGE_WIDTH, self.units))
             self.width_spin.setSingleStep(.01 if self.units == 'inch' else .1)
             self.width_spin.setSuffix(' ' + self.units)
             self.width_spin.setValue(from_mm(self.width_mm, self.units))

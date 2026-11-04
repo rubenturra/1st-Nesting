@@ -9,6 +9,7 @@ from Nesting1stResultGroups import create_sheet_group, add_to_sheet_group, sheet
 
 MM_PER_INCH = 25.4
 TOLERANCE = 1e-6
+MAX_BRIDGE_WIDTH = 100.0  # mm
 
 
 class BridgeError(ValueError):
@@ -251,7 +252,7 @@ class BridgeLayout:
 
     def make_bridge(self, first, second, width_mm):
         width = float(width_mm)
-        if not math.isfinite(width) or width <= 0:
+        if not math.isfinite(width) or width <= 0 or width > MAX_BRIDGE_WIDTH:
             raise BridgeError('width_invalid')
         a, b = self.parts[first['part']], self.parts[second['part']]
         if a['index'] == b['index']:
@@ -538,6 +539,22 @@ def create_document(layout, translate):
                 add_to_sheet_group(group, obj)
                 if App.GuiUp:
                     style_component(obj.ViewObject, first['index'])
+            # Bridges are merged into the parts; draw them on top in orange so
+            # they can be seen (a face compound, never machined itself).
+            strips = [bridge['face'] for bridge in layout.bridges if bridge['sheet'] == sheet_id]
+            if strips:
+                top = max((part['shape'].BoundBox.ZMax for part in layout.parts
+                           if part['sheet'] == sheet_id and part['shape'] is not None), default=0.0)
+                marks = Part.makeCompound([strip.copy() for strip in strips])
+                marks.translate(App.Vector(0, 0, top + 0.05))
+                overlay = document.addObject('Part::Feature', 'Bridges_%d' % sheet_id)
+                overlay.Label = '%s · %d' % (translate('bridge.list'), len(strips))
+                overlay.Shape = marks
+                add_to_sheet_group(group, overlay)
+                if App.GuiUp:
+                    overlay.ViewObject.ShapeColor = (1.0, 0.45, 0.0)
+                    overlay.ViewObject.LineColor = (0.8, 0.2, 0.0)
+                    overlay.ViewObject.LineWidth = 3.0
         document.recompute()
         if App.GuiUp:
             metadata.ViewObject.Visibility = False
