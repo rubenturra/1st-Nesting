@@ -1729,6 +1729,41 @@ class OffcutMaterialsController(object):
         self._count_update_guard = False
         self._table_rebuild_guard = False
 
+    # Write the materials list to the sheet stock file (see Nesting1stStock).
+    def save_stock(self):
+        if getattr(self, "_stock_loading", False):
+            return
+        try:
+            import Nesting1stStock
+            if Nesting1stStock.enabled():
+                Nesting1stStock.save_stock(self.offcuts)
+        except Exception:
+            App.Console.PrintWarning("1st Nesting: could not save the sheet stock\n")
+
+    # Restore the saved sheet stock into an empty materials list.
+    def load_stock(self):
+        try:
+            import Nesting1stStock
+            if not Nesting1stStock.enabled() or self.offcuts:
+                return
+            materials = Nesting1stStock.load_stock()
+            if not materials:
+                return
+            next_id = int(getattr(self.panel, "_offcut_next_id", 1))
+            for material in materials:
+                material["id"] = next_id
+                next_id += 1
+            self.panel._offcut_next_id = next_id
+            self.offcuts.extend(materials)
+            self._stock_loading = True
+            try:
+                self._rebuild_offcuts_table()
+            finally:
+                self._stock_loading = False
+        except Exception:
+            App.Console.PrintWarning("1st Nesting: could not load the sheet stock\n"
+                                     + traceback.format_exc())
+
     # Expose the parent panel material list.
     @property
     def offcuts(self):
@@ -2100,6 +2135,8 @@ class OffcutMaterialsController(object):
             if item.text() != str(new_count):
                 ui_call(item, 'setText', str(new_count))
 
+            self.save_stock()
+
         except Exception:
             App.Console.PrintError(
                 tr('on_offcut_count_changed_failed')
@@ -2211,6 +2248,7 @@ class OffcutMaterialsController(object):
             self.offcuts_table.setUpdatesEnabled(True)
             self.offcuts_table.viewport().update()
             self._table_rebuild_guard = False
+            self.save_stock()
             
     # Format rectangular sheet label using the active display units. Internal width and height
     # values are always stored in mm.
@@ -2529,6 +2567,7 @@ class OffcutMaterialsController(object):
 
             # Grain values are updated in-place by OffcutShowDialog.
             self._refresh_offcut_grain_column()
+            self.save_stock()
 
         except Exception:
             App.Console.PrintError(

@@ -638,6 +638,7 @@ class NestingTaskPanel:
             App.Console.PrintError(tr('failed_to_add_selection_observer') + traceback.format_exc())
 
         self._load_settings_from_prefs()
+        self.offcut_controller.load_stock()
         self._connect_settings_persistence()
         self._update_cli_dependency_widgets()
         

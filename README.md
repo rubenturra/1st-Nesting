@@ -145,7 +145,7 @@ Use **Mark selected part holes** to choose inner contours available for nesting.
 
 ## Sheets and offcuts
 
-Add rectangular sheets with dimensions and quantities, or import irregular stock from DXF. Adding identical stock increases its available quantity. Use **Edit** for sheet boundaries, holes and grain direction, and **Remove** to delete stock rows. Optionally give each sheet a thickness and material: parts of another thickness then block nesting, and **Offcut library…** lists saved DXF offcuts filtered by thickness ([details](docs/SHEET_THICKNESS.md)).
+Add rectangular sheets with dimensions and quantities, or import irregular stock from DXF. Adding identical stock increases its available quantity. Use **Edit** for sheet boundaries, holes and grain direction, and **Remove** to delete stock rows. Optionally give each sheet a thickness and material: parts of another thickness then block nesting, and **Offcut library…** lists saved DXF offcuts filtered by thickness ([details](docs/SHEET_THICKNESS.md)). The list is kept as a sheet stock between sessions ([details](docs/SHEET_STOCK.md)).
 
 Stock geometry is exported in its local coordinates. Moving a preview sheet changes its display position without changing its usable boundary. Grain X/Y refers to the sheet's local axes. Sheet holes can use the standard part spacing or a custom hole-to-part clearance.
 
@@ -310,7 +310,7 @@ The workbench is Python code loaded by FreeCAD. The nesting executable is mainta
 | `Nesting1stGui.py`, `Nesting1stSettings.py`, `Nesting1stLanguages.py` | Main panel, preferences and translations |
 | `Nesting1stPreviewDoc.py`, `Nesting1stRelayout.py`, `Nesting1stRotate.py` | Preview geometry, layout and orientation |
 | `Nesting1stImport2D.py`, `Nesting1stOffcuts.py`, `Nesting1stAddSheet.py` | Part imports and stock creation |
-| `Nesting1stSheetSpec.py`, `Nesting1stOffcutLibrary.py` | Sheet thickness/material and the offcut library |
+| `Nesting1stSheetSpec.py`, `Nesting1stOffcutLibrary.py`, `Nesting1stStock.py` | Sheet thickness/material, offcut library and sheet stock |
 | `Nesting1stOffcutShowDialog.py`, `Nesting1stPartHoles.py` | Stock editing and selectable holes |
 | `Nesting1stGrain*.py` | Texture alignment, group model and manual editor |
 | `Nesting1stExport.py`, `Nesting1stRuntime.py` | Polygon export and engine/job protocol |

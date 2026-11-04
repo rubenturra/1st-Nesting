@@ -1,6 +1,7 @@
 """Run with FreeCAD's Python: exact corridor checks, real clicks, units and saved CAD."""
 import os
 os.environ['QT_QPA_PLATFORM'] = 'offscreen'
+os.environ['NESTING1ST_NO_STOCK'] = '1'  # never touch the user's sheet stock
 import copy
 import json
 import math
