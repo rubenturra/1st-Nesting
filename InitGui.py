@@ -114,6 +114,11 @@ class OpenCAMCommand:
 
     def Activated(self):
         import FreeCADGui as Gui
+        try:  # the nesting task is finished: close it so CAM has the Tasks view
+            import Nesting1stGui
+            Nesting1stGui.close_nesting_panel()
+        except Exception:
+            pass
         Gui.activateWorkbench("CAMWorkbench")
 
     def IsActive(self):

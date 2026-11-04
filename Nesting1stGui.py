@@ -145,6 +145,25 @@ def parallel_thickness_enabled():
         return True
 
 
+def close_nesting_panel():
+    """Close the 1st Nesting task panel (as its Cancel button does)."""
+    import gc
+    try:
+        if not Gui.Control.activeDialog():
+            return False
+    except Exception:
+        return False
+    for obj in gc.get_objects():
+        if type(obj).__name__ == "NestingTaskPanel":
+            try:
+                if obj.form is not None and obj.form.isVisible():
+                    obj.reject()
+                    return True
+            except (RuntimeError, AttributeError):
+                continue
+    return False
+
+
 def batch_stats(result_data):
     """(sheets used, parts placed, parts left without nesting) of one result."""
     data = result_data or {}
@@ -3841,13 +3860,18 @@ class NestingTaskPanel:
     def _batch_summary_text(self, batches, skipped):
         lines = []
         left_total = 0
+        placed_total = sheets_total = 0
         for b in batches:
             line = "%s → %s" % (self._thickness_checker._dimension(b["thickness"]), b.get("document_label", ""))
             if "sheets_used" in b:
                 line += "\n     " + tr('sheet_thickness.batch_stats') % (b["sheets_used"], b["placed"], b["unplaced"])
                 left_total += b["unplaced"]
+                placed_total += b["placed"]
+                sheets_total += b["sheets_used"]
             lines.append(line)
         text = tr('sheet_thickness.batch_done') % "\n\n".join(lines)
+        if placed_total:
+            text += "\n\n" + tr('sheet_thickness.total') % (placed_total, sheets_total)
         if left_total:
             text += "\n\n" + tr('sheet_thickness.left_total') % left_total
         if skipped:

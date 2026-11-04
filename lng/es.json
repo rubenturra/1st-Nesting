@@ -686,5 +686,6 @@
   "sheet_thickness.batch_stats": "%d plancha(s) usadas · %d piezas anidadas · %d piezas sin anidar",
   "sheet_thickness.left_total": "ATENCIÓN: faltan %d piezas por anidar (no caben en las planchas disponibles). Añade más planchas de ese espesor.",
   "sheet_thickness.cancelling": "Cancelando todos los anidados...",
-  "sheet_thickness.cancelled": "Anidado cancelado: se han parado todos los espesores y no se ha creado ningún resultado."
+  "sheet_thickness.cancelled": "Anidado cancelado: se han parado todos los espesores y no se ha creado ningún resultado.",
+  "sheet_thickness.total": "TOTAL: %d piezas anidadas en %d plancha(s)"
 }
