@@ -3510,14 +3510,88 @@ class NestingTaskPanel:
 
                 return
 
-            if self._thickness_checker.block_sheet_mismatch():
+            batches = self._thickness_checker.plan_nesting()
+            if not batches:
                 return
 
-            input_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "input.json")
-            self._thickness_checker.refresh(force=True)
-            self._nesting_manager.prepare_and_start(input_path)
+            if len(batches) == 1 and not batches[0]["thickness"]:
+                # No sheet thickness: classic single run with everything.
+                self._batch_queue = []
+                self._batch_current = None
+                self._batch_part_names = self._batch_sheet_ids = None
+                self._thickness_checker.refresh(force=True)
+                self._start_nesting_run()
+                return
+
+            self._batch_queue = list(batches)
+            self._batch_total = len(batches)
+            self._batch_done = []
+            if len(batches) > 1:
+                App.Console.PrintMessage(
+                    "1st Nesting: %d nestings by thickness: %s\n" % (
+                        len(batches), ", ".join(self._thickness_checker._dimension(b["thickness"])
+                                                for b in batches)))
+            self._start_next_batch()
         except Exception:
             self._nesting_manager._finish_failure(traceback.format_exc())
+
+    def _start_nesting_run(self):
+        input_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "input.json")
+        self._nesting_manager.prepare_and_start(input_path)
+
+    # Start the next per-thickness run; parts and sheets of other gauges are skipped.
+    def _start_next_batch(self):
+        if not getattr(self, "_batch_queue", None):
+            self._batch_current = None
+            self._batch_part_names = self._batch_sheet_ids = None
+            return
+        if self._nesting_manager.is_running():
+            QtCore.QTimer.singleShot(300, self._start_next_batch)
+            return
+        batch = self._batch_queue.pop(0)
+        self._batch_current = batch
+        self._batch_part_names = set(batch["names"])
+        self._batch_sheet_ids = set(batch["sheet_ids"])
+        App.Console.PrintMessage("1st Nesting: %s (%d/%d)\n" % (
+            self._thickness_checker._dimension(batch["thickness"]),
+            self._batch_total - len(self._batch_queue), self._batch_total))
+        self._start_nesting_run()
+
+    # Called by the process manager after every run (success or failure).
+    def _on_nesting_run_finished(self, success):
+        batch = getattr(self, "_batch_current", None)
+        if batch is None:
+            return
+        if success:
+            self._label_batch_result(batch)
+            self._batch_done.append(batch)
+        if success and self._batch_queue:
+            QtCore.QTimer.singleShot(200, self._start_next_batch)
+            return
+        self._batch_queue = []
+        self._batch_current = None
+        self._batch_part_names = self._batch_sheet_ids = None
+        if success and getattr(self, "_batch_total", 0) > 1:
+            QtGui.QMessageBox.information(
+                self.form, tr('sheet_thickness.batch_done_title'),
+                tr('sheet_thickness.batch_done') % "\n".join(
+                    "%s → %s" % (self._thickness_checker._dimension(b["thickness"]),
+                                 b.get("document_label", ""))
+                    for b in self._batch_done))
+
+    # Name the result document after its thickness, e.g. Nesting_Result_10mm.
+    def _label_batch_result(self, batch):
+        try:
+            importer = self._nesting_manager.importer
+            doc = importer.result_doc if importer is not None else None
+            if doc is None:
+                return
+            from Nesting1stSheetSpec import format_number
+            label = "Nesting_Result_%smm" % format_number(batch["thickness"]).replace(".", ",")
+            doc.Label = label
+            batch["document_label"] = label
+        except Exception:
+            App.Console.PrintWarning("1st Nesting: could not rename the result document\n")
 
     def isAllowedAlterDocument(self):
         # Result documents must be selectable while continuous nesting runs.

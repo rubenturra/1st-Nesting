@@ -1732,6 +1732,12 @@ class OffcutMaterialsController(object):
 
     # Write the materials list to the sheet stock file (see Nesting1stStock).
     def save_stock(self):
+        # Sheet thicknesses decide which parts are marked red.
+        try:
+            checker = self.panel._thickness_checker
+            QtCore.QTimer.singleShot(0, lambda: checker.refresh(warn=False))
+        except Exception:
+            pass
         if getattr(self, "_stock_loading", False):
             return
         try:

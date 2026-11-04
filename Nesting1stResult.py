@@ -1993,6 +1993,13 @@ class NestingProcessManager(object):
             App.Console.PrintMessage(tr('nesting_result_imported_successfully'))
         elif self._cancelled:
             App.Console.PrintMessage(tr('common.cancel') + "\n")
+        self._notify_batch(self._imported_signature is not None)
+
+    # Let the panel start the next per-thickness run (or stop the batch).
+    def _notify_batch(self, success):
+        callback = getattr(self.panel, "_on_nesting_run_finished", None)
+        if callback is not None:
+            QtCore.QTimer.singleShot(0, lambda: callback(success))
 
     def _finish_failure(self, message):
         if self._finished:
@@ -2001,6 +2008,7 @@ class NestingProcessManager(object):
         self.stop_nesting()
         self._restore_ui()
         App.Console.PrintError(tr('nesting_failed_s') % str(message))
+        self._notify_batch(False)
         try:
             QtGui.QMessageBox.critical(self.panel.form, tr('nesting_failed'), str(message))
         except (AttributeError, TypeError):

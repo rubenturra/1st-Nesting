@@ -20,7 +20,8 @@ between solids for thickness. Flat DXF/SVG contours have no defined material
 thickness and are excluded from comparison.
 
 The warning is advisory: dismissing it allows nesting to continue. When a
-sheet or offcut has a thickness, mismatched parts block nesting instead; see
+sheet or offcut has a thickness, nesting runs once per thickness and marks only parts without a sheet of
+their thickness; see
 [Sheet thickness, material and offcut library](SHEET_THICKNESS.md). Correcting
 the mismatch restores the original table colours. Unchanged mismatches do not
 open repeated popups during routine edits; starting a new nesting run checks

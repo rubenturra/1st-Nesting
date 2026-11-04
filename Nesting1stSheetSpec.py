@@ -109,32 +109,70 @@ def list_offcut_files(folder):
     return entries
 
 
-def sheet_thickness_problem(materials, parts, labels=None):
-    """Decide whether nesting must be blocked.
-
-    materials: sheet/offcut dicts; parts: {name: [depths in mm]} of 3D parts;
-    labels: {name: label}.  Returns None, or a dict describing the problem:
-      {"kind": "mixed_sheets", "values": [..]}
-      {"kind": "parts", "reference": t, "names": [..]}
-    Sheets without a thickness and flat parts (no depths) are not checked.
-    """
+def sheet_thickness_values(materials):
     values = []
     for material in materials or []:
         thickness = material_thickness(material)
         if thickness and not any(same_thickness(thickness, v) for v in values):
             values.append(thickness)
+    return sorted(values)
+
+
+def unmatched_parts(materials, parts):
+    """Names of 3D parts whose thickness has no sheet (empty if no sheet thickness)."""
+    values = sheet_thickness_values(materials)
     if not values:
-        return None
-    if len(values) > 1:
-        return {"kind": "mixed_sheets", "values": sorted(values)}
-    reference = values[0]
-    names = [name for name, depths in (parts or {}).items()
-             if depths and any(not same_thickness(d, reference) for d in depths)]
-    if not names:
-        return None
+        return set()
+    return {name for name, depths in (parts or {}).items()
+            if depths and any(not any(same_thickness(d, v) for v in values) for d in depths)}
+
+
+def plan_batches(materials, parts, labels=None):
+    """Split a job by thickness: one nesting run per sheet thickness with parts.
+
+    Returns {"problem": None | {...}, "batches": [...]}; each batch is
+    {"thickness": t, "sheet_ids": [...], "names": [...]}. Without any sheet
+    thickness there is one batch with everything (thickness 0).
+    Problems block nesting:
+      sheets_without_thickness - some stock has a thickness and some has not
+      parts                    - parts without a sheet of their thickness
+      flat_parts               - DXF/SVG parts while several thicknesses run
+      nothing                  - no sheet thickness matches any part
+    """
     labels = labels or {}
-    names.sort(key=lambda n: str(labels.get(n, n)).lower())
-    return {"kind": "parts", "reference": reference, "names": names}
+    materials = list(materials or [])
+    parts = dict(parts or {})
+    order = lambda names: sorted(names, key=lambda n: str(labels.get(n, n)).lower())
+    values = sheet_thickness_values(materials)
+    if not values:
+        return {"problem": None, "batches": [{"thickness": 0.0,
+                "sheet_ids": [m.get("id") for m in materials], "names": list(parts)}]}
+    missing = [m for m in materials if not material_thickness(m)]
+    if missing:
+        return {"problem": {"kind": "sheets_without_thickness",
+                            "labels": [str(m.get("label", "")) for m in missing]}, "batches": []}
+    bad = unmatched_parts(materials, parts)
+    if bad:
+        return {"problem": {"kind": "parts", "names": order(bad), "values": values}, "batches": []}
+    batches = []
+    for value in values:
+        names = [n for n, depths in parts.items()
+                 if depths and all(same_thickness(d, value) for d in depths)]
+        if names:
+            batches.append({"thickness": value, "names": names, "sheet_ids":
+                            [m.get("id") for m in materials if same_thickness(material_thickness(m), value)]})
+    flat = [n for n, depths in parts.items() if not depths]
+    if flat and not batches and len(values) == 1:
+        batches.append({"thickness": values[0], "names": [], "sheet_ids":
+                        [m.get("id") for m in materials]})
+    if flat:
+        if len(batches) == 1:
+            batches[0]["names"].extend(flat)
+        elif len(batches) > 1:
+            return {"problem": {"kind": "flat_parts", "names": order(flat)}, "batches": []}
+    if not batches:
+        return {"problem": {"kind": "nothing", "values": values}, "batches": []}
+    return {"problem": None, "batches": batches}
 
 
 def common_spec(materials):

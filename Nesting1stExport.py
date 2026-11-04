@@ -1331,6 +1331,15 @@ def _read_search_mode(panel, default='first'):
     return normalize_search_mode(value, default)
 
 
+def _job_materials(panel):
+    """Sheets of the current run (a per-thickness batch keeps only its own)."""
+    materials = list(getattr(panel, "offcuts", []) or [])
+    ids = getattr(panel, "_batch_sheet_ids", None)
+    if ids is None:
+        return materials
+    return [m for m in materials if m.get("id") in ids]
+
+
 def _cli_polygon(record):
     """Keep FreeCAD metadata in the session, not in the strict CLI schema."""
     result = {key: value for key, value in record.items() if key != '_ip_nesting'}
@@ -1551,11 +1560,9 @@ def export_nesting_steps(panel):
         errors = []
         sheets = []
 
-        for material in getattr(
-            panel,
-            "offcuts",
-            []
-        ) or []:
+        job_materials = _job_materials(panel)
+
+        for material in job_materials:
             yield None
             try:
                 sheet = _material_to_cli_sheet(
@@ -1617,7 +1624,7 @@ def export_nesting_steps(panel):
                     + traceback.format_exc()
                 )
 
-        if len(sheets) != len(getattr(panel, "offcuts", []) or []) or not sheets:
+        if len(sheets) != len(job_materials) or not sheets:
             errors.append("One or more materials have invalid geometry or dimensions")
 
         yield None  # Let Qt paint and handle cancellation before recomputing.
@@ -1732,6 +1739,10 @@ def export_nesting_steps(panel):
 
                 except Exception:
                     pass
+
+                batch_names = getattr(panel, "_batch_part_names", None)
+                if batch_names is not None and primary_name not in batch_names:
+                    continue  # Another thickness: nested in its own run.
 
                 if not primary_name:
                     App.Console.PrintWarning(

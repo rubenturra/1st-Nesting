@@ -117,7 +117,7 @@ class ThicknessChecker:
             for row, names in result['rows'].items():
                 mismatch = bool(set(names) & result['mismatched'])
                 depths = [d for name in names for d in result['parts'].get(name, [])]
-                tooltip = str(tr('thickness.row_tooltip') % (self._values(depths), self._dimension(result['reference']))) if mismatch else ''
+                tooltip = str(tr('thickness.row_tooltip') % (self._values(depths), result.get('reference_text') or self._dimension(result['reference']))) if mismatch else ''
                 for col in range(table.columnCount()):
                     item = table.item(row, col)
                     if item is not None:
@@ -182,30 +182,49 @@ class ThicknessChecker:
         else:
             message.exec_()
 
-    def block_sheet_mismatch(self):
-        """Return True (after showing why) when nesting must not start because
-        the parts' thickness differs from the thickness set on the sheets."""
-        from Nesting1stSheetSpec import sheet_thickness_problem
-        result = self.measure()
-        problem = sheet_thickness_problem(getattr(self.panel, 'offcuts', []) or [],
-                                          result['parts'], result['labels'])
-        if problem is None:
+    def _sheet_values(self):
+        from Nesting1stSheetSpec import sheet_thickness_values
+        return sheet_thickness_values(getattr(self.panel, 'offcuts', []) or [])
+
+    def _apply_sheet_thickness(self, result):
+        """With sheet thicknesses, mark only parts that no sheet can take."""
+        from Nesting1stSheetSpec import unmatched_parts
+        values = self._sheet_values()
+        if not values:
             return False
+        result['mismatched'] = unmatched_parts(getattr(self.panel, 'offcuts', []) or [], result['parts'])
+        result['reference_text'] = ', '.join(self._dimension(v) for v in values)
+        return True
+
+    def plan_nesting(self):
+        """Return the per-thickness batches, or None after explaining why nesting
+        cannot start."""
+        from Nesting1stSheetSpec import plan_batches
+        result = self.measure()
+        plan = plan_batches(getattr(self.panel, 'offcuts', []) or [], result['parts'], result['labels'])
+        problem = plan['problem']
+        if problem is None:
+            return plan['batches']
         message = QtGui.QMessageBox(self.panel.form)
         message.setIcon(QtGui.QMessageBox.Critical)
         message.setWindowTitle(tr('sheet_thickness.block_title'))
-        if problem['kind'] == 'mixed_sheets':
-            message.setText(tr('sheet_thickness.mixed_sheets') %
-                            ', '.join(self._dimension(v) for v in problem['values']))
+        kind = problem['kind']
+        values = ', '.join(self._dimension(v) for v in problem.get('values', []))
+        if kind == 'sheets_without_thickness':
+            message.setText(tr('sheet_thickness.sheets_without_thickness') % '\n'.join(problem['labels']))
+        elif kind == 'nothing':
+            message.setText(tr('sheet_thickness.nothing') % values)
         else:
-            result['reference'] = problem['reference']
-            result['mismatched'] = set(problem['names'])
-            self._highlight(result)
-            lines = [result['labels'].get(n, n) + ': ' + self._values(result['parts'][n])
-                     for n in problem['names']]
-            shown = lines[:15] + (['…'] if len(lines) > 15 else [])
-            message.setText(tr('sheet_thickness.parts_mismatch') %
-                            (self._dimension(problem['reference']), '\n'.join(shown)))
+            if kind == 'parts':
+                self._apply_sheet_thickness(result)
+                self._highlight(result)
+            lines = [result['labels'].get(n, n) + (': ' + self._values(result['parts'][n])
+                     if result['parts'].get(n) else '') for n in problem['names']]
+            shown = '\n'.join(lines[:15] + (['…'] if len(lines) > 15 else []))
+            if kind == 'parts':
+                message.setText(tr('sheet_thickness.parts_without_sheet') % (values, shown))
+            else:
+                message.setText(tr('sheet_thickness.flat_parts') % shown)
             if len(lines) > 15:
                 message.setDetailedText('\n'.join(lines))
         message.setStandardButtons(QtGui.QMessageBox.Ok)
@@ -213,11 +232,16 @@ class ThicknessChecker:
             message.exec()
         else:
             message.exec_()
-        return True
+        return None
 
     def refresh(self, warn=True, force=False):
         self.timer.stop()
         result = self.measure()
+        if self._apply_sheet_thickness(result):
+            # Sheets define the valid gauges; nesting explains any problem.
+            self._highlight(result)
+            self.last_warning = None
+            return result
         self._highlight(result)
         if not result['mismatched']:
             self.last_warning = None

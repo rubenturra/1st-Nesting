@@ -20,19 +20,24 @@ When a DXF name contains a thickness marker such as `_e10mm_`, that thickness is
 used if the field is empty. If the field holds a different value, the dialog
 asks which one to keep.
 
-## Blocking mismatched parts
+## Nesting by thickness
 
-If at least one sheet or offcut has a thickness, **Run nesting** does not start
-when:
+When the sheets and offcuts have thicknesses, **Run nesting** makes one nesting
+per thickness, one after another: each run uses only the sheets of that
+thickness and the 3D parts of the same thickness. Each result opens in its own
+document, labelled `Nesting_Result_10mm`, `Nesting_Result_20mm`, … and a summary
+lists them at the end. Sheet thicknesses without parts are skipped.
 
-- the sheets and offcuts have different thicknesses (nest each thickness in a
-  separate run); or
-- any 3D part has a different thickness from the sheets. The affected rows are
-  marked in red and listed in the message.
+Parts are marked red only when no sheet has their thickness. Nesting does not
+start when:
 
-Stock without a thickness is not checked, and flat DXF/SVG parts have no
-thickness, so neither blocks nesting. Without any sheet thickness the
-[advisory part check](THICKNESS_CHECK.md) works as before.
+- some stock has a thickness and some has not (give every sheet a thickness);
+- a 3D part has no sheet of its thickness (the message lists them); or
+- flat DXF/SVG parts would have to be shared between several thicknesses.
+
+With a single thickness, flat parts join that run. Stock without any thickness
+works as before, in one run with the [advisory part check](THICKNESS_CHECK.md).
+Pressing **Stop** before a run has a result cancels the remaining thicknesses.
 
 The thickness and material are saved in `nesting_session.json` and on every
 `Sheet_N` object of `Nesting_Result` as the properties **Thickness** and

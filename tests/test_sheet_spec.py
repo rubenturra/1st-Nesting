@@ -35,23 +35,42 @@ class FileNameTests(unittest.TestCase):
         self.assertEqual(S.list_offcut_files('/does/not/exist'), [])
 
 
-class BlockingTests(unittest.TestCase):
-    def test_no_thickness_never_blocks(self):
-        self.assertIsNone(S.sheet_thickness_problem([{'type': 'rectangular'}], {'a': [5.0]}))
+class PlanTests(unittest.TestCase):
+    def test_no_thickness_is_one_classic_run(self):
+        plan = S.plan_batches([{'id': 1, 'type': 'rectangular'}], {'a': [5.0], 'b': [8.0]})
+        self.assertIsNone(plan['problem'])
+        self.assertEqual(plan['batches'], [{'thickness': 0.0, 'sheet_ids': [1], 'names': ['a', 'b']}])
 
-    def test_matching_parts_and_flat_parts_pass(self):
-        sheets = [{'thickness': 10}, {'thickness': 0}]
-        self.assertIsNone(S.sheet_thickness_problem(sheets, {'a': [10.0004], 'dxf': []}))
+    def test_one_run_per_thickness(self):
+        sheets = [{'id': 1, 'thickness': 10}, {'id': 2, 'thickness': 20},
+                  {'id': 3, 'thickness': 10}, {'id': 4, 'thickness': 30}]
+        parts = {'a10': [10.0004], 'b20': [20.0], 'c10': [10.0], 'd30': [30.0, 30.0]}
+        plan = S.plan_batches(sheets, parts)
+        self.assertIsNone(plan['problem'])
+        self.assertEqual([(b['thickness'], b['sheet_ids'], sorted(b['names'])) for b in plan['batches']],
+                         [(10.0, [1, 3], ['a10', 'c10']), (20.0, [2], ['b20']), (30.0, [4], ['d30'])])
 
-    def test_wrong_part_blocks(self):
-        problem = S.sheet_thickness_problem([{'thickness': 10}], {'b': [8.0], 'a': [10.0]},
-                                            {'b': 'Pletina'})
-        self.assertEqual(problem, {'kind': 'parts', 'reference': 10.0, 'names': ['b']})
+    def test_sheet_without_parts_is_skipped(self):
+        plan = S.plan_batches([{'id': 1, 'thickness': 10}, {'id': 2, 'thickness': 20}], {'a': [10.0]})
+        self.assertEqual([b['thickness'] for b in plan['batches']], [10.0])
 
-    def test_mixed_sheets_block(self):
-        problem = S.sheet_thickness_problem([{'thickness': 10}, {'thickness': 8}], {})
-        self.assertEqual(problem, {'kind': 'mixed_sheets', 'values': [8.0, 10.0]})
+    def test_part_without_sheet_blocks(self):
+        plan = S.plan_batches([{'id': 1, 'thickness': 10}], {'b': [8.0], 'a': [10.0]}, {'b': 'Pletina'})
+        self.assertEqual(plan['problem'], {'kind': 'parts', 'names': ['b'], 'values': [10.0]})
+        self.assertEqual(S.unmatched_parts([{'thickness': 10}, {'thickness': 8}], {'b': [8.0]}), set())
 
+    def test_missing_sheet_thickness_and_flat_parts(self):
+        plan = S.plan_batches([{'id': 1, 'thickness': 10}, {'id': 2, 'label': 'Sin'}], {'a': [10.0]})
+        self.assertEqual(plan['problem'], {'kind': 'sheets_without_thickness', 'labels': ['Sin']})
+        one = S.plan_batches([{'id': 1, 'thickness': 10}], {'a': [10.0], 'dxf': []})
+        self.assertEqual(sorted(one['batches'][0]['names']), ['a', 'dxf'])
+        two = S.plan_batches([{'id': 1, 'thickness': 10}, {'id': 2, 'thickness': 20}],
+                             {'a': [10.0], 'b': [20.0], 'dxf': []})
+        self.assertEqual(two['problem'], {'kind': 'flat_parts', 'names': ['dxf']})
+        none = S.plan_batches([{'id': 1, 'thickness': 10}], {'dxf': []})
+        self.assertEqual(none['batches'][0]['names'], ['dxf'])
+
+class LabelTests(unittest.TestCase):
     def test_labels_and_common_spec(self):
         self.assertEqual(S.spec_suffix({'thickness': 10, 'material': 'S275'}), ' · 10 mm · S275')
         self.assertEqual(S.spec_suffix({'thickness': 25.4}, 'inch'), ' · 1 inch')

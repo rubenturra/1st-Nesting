@@ -644,8 +644,6 @@
   "sheet_spec.dxf_name_thickness_title": "Offcut thickness",
   "sheet_spec.dxf_name_thickness_q": "The file name says this offcut is %s thick, but the dialog says %s.\n\nUse %s?",
   "sheet_thickness.block_title": "Thickness does not match",
-  "sheet_thickness.mixed_sheets": "The sheets and offcuts have different thicknesses: %s.\n\nParts cannot be assigned by thickness in one run. Nest each thickness separately.",
-  "sheet_thickness.parts_mismatch": "The sheet thickness is %s. These parts have a different thickness:\n\n%s\n\nRemove them from the list or change the sheet thickness before nesting.",
   "offcut_library.button": "Offcut library…",
   "offcut_library.tooltip": "Choose a saved DXF offcut from the offcut folder, filtered by thickness.",
   "offcut_library.title": "Offcut library",
@@ -668,5 +666,11 @@
   "tab.nesting": "Nesting",
   "tab.setup": "Setup",
   "sheet_spec.col_thickness": "Thickness",
-  "sheet_spec.col_thickness_tooltip": "Sheet thickness in the panel units. Double-click to change it; leave empty if unknown."
+  "sheet_spec.col_thickness_tooltip": "Sheet thickness in the panel units. Double-click to change it; leave empty if unknown.",
+  "sheet_thickness.sheets_without_thickness": "These sheets or offcuts have no thickness:\n\n%s\n\nGive them a thickness (double-click the Thickness column) or remove them, so each one is nested with the right parts.",
+  "sheet_thickness.parts_without_sheet": "There are sheets of %s, but these parts have no sheet of their thickness:\n\n%s\n\nAdd a sheet of that thickness or remove the parts from the list.",
+  "sheet_thickness.flat_parts": "These DXF/SVG parts have no thickness, so they cannot be assigned to one of the thickness nestings:\n\n%s\n\nNest them separately.",
+  "sheet_thickness.nothing": "No part matches the sheet thicknesses (%s).",
+  "sheet_thickness.batch_done_title": "Nesting by thickness",
+  "sheet_thickness.batch_done": "One nesting was made for each thickness:\n\n%s"
 }
