@@ -6,6 +6,9 @@ from Nesting1stBridgeModel import BridgeError, load_result, create_document, fro
 from Nesting1stResultSVG import _colour
 
 
+LIGHT_DRAWING_PARTS = 150
+
+
 def text(key):
     return tr('bridge.' + key)
 
@@ -129,6 +132,8 @@ class BridgeDialog(QtGui.QDialog):
         self.view = BridgeView(self)
         self.view.setScene(QtGui.QGraphicsScene(self.view))
         self.view.setRenderHint(QtGui.QPainter.Antialiasing)
+        self.view.setOptimizationFlag(QtGui.QGraphicsView.DontAdjustForAntialiasing, True)
+        self.view.setOptimizationFlag(QtGui.QGraphicsView.DontSavePainterState, True)
         self.view.setBackgroundBrush(QtGui.QBrush(QtGui.QColor('#fafbfc')))
         self.view.setMinimumHeight(240)
         root.addWidget(self.view, 1)
@@ -317,6 +322,12 @@ class BridgeDialog(QtGui.QDialog):
         self.pending = None
         self.cancel_point.setEnabled(False)
         sheet = next(s for s in self.layout_model.sheets if s['index'] == self.current_sheet())
+        # Large sheets (hundreds of parts) must stay fluid when zooming: draw
+        # the machining details coarser, skip labels and antialiasing.
+        count = sum(1 for part in self.layout_model.parts if part['sheet'] == sheet['index'])
+        many = count > LIGHT_DRAWING_PARTS
+        self.view.setRenderHint(QtGui.QPainter.Antialiasing, not many)
+        detail_deflection = 0.5 if many else 0.05
         scene.addPath(painter_path(sheet['outer'], sheet['holes']), cosmetic_pen('#8794a0'),
                       QtGui.QBrush(QtGui.QColor('#f0f3f6')))
         for part in self.layout_model.parts:
@@ -331,7 +342,7 @@ class BridgeDialog(QtGui.QDialog):
                 details = QtGui.QPainterPath()
                 seen = set()
                 for edge in part['shape'].Edges:
-                    points = _discretize_edge_2d(edge, .01)
+                    points = _discretize_edge_2d(edge, detail_deflection)
                     key = tuple(tuple(p) for p in points)
                     if len(points) < 2 or key in seen or tuple(reversed(key)) in seen:
                         continue
@@ -341,6 +352,8 @@ class BridgeDialog(QtGui.QDialog):
                         details.lineTo(x, -y)
                 detail_item = scene.addPath(details, cosmetic_pen('#566372', .8))
                 detail_item.setAcceptedMouseButtons(QtCore.Qt.NoButton)
+            if many:
+                continue  # The part name stays available as the tooltip.
             label = scene.addSimpleText('%d · %s' % (part['index']+1, part['label']))
             label.setFlag(QtGui.QGraphicsItem.ItemIgnoresTransformations)
             label.setBrush(QtGui.QBrush(QtGui.QColor('#273545')))

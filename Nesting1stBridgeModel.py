@@ -114,8 +114,17 @@ class BridgeLayout:
 
     def nearest_edge(self, sheet, point, tolerance):
         best = None
+        x, y = float(point[0]), float(point[1])
         for part in self.parts:
             if part['sheet'] != sheet:
+                continue
+            # Cheap bounding-box test first: hundreds of parts are checked on
+            # every mouse move, only the few near the cursor need the exact one.
+            box = part.get('_bbox')
+            if box is None:
+                xs = [p[0] for p in part['outer']]; ys = [p[1] for p in part['outer']]
+                box = part['_bbox'] = (min(xs), min(ys), max(xs), max(ys))
+            if x < box[0]-tolerance or x > box[2]+tolerance or y < box[1]-tolerance or y > box[3]+tolerance:
                 continue
             candidate = nearest_on_ring(point, part['outer'])
             if candidate and candidate[0] <= tolerance and (best is None or candidate[0] < best[0]):
