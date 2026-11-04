@@ -3508,6 +3508,9 @@ class NestingTaskPanel:
 
                 return
 
+            if self._thickness_checker.block_sheet_mismatch():
+                return
+
             input_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "input.json")
             self._thickness_checker.refresh(force=True)
             self._nesting_manager.prepare_and_start(input_path)

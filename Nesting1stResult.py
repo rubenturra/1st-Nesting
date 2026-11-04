@@ -759,7 +759,32 @@ class NestingResultImporter(object):
 
         self._sheet_layout_x = display_x
         self._sheet_max_y = max_sheet_y
+        self._store_sheet_spec()
         return imported_count
+
+    # Record the job's sheet thickness/material on every Sheet_N (CAM macros read it).
+    def _store_sheet_spec(self):
+        try:
+            from Nesting1stSheetSpec import common_spec
+            thickness, material = common_spec(self.session_data.get("sheets", []) or [])
+            if not thickness and not material:
+                return
+            for obj in list(self.result_doc.Objects):
+                name = str(getattr(obj, "Name", ""))
+                if not name.startswith("Sheet_") or not name[6:].isdigit():
+                    continue
+                if thickness:
+                    if "Thickness" not in obj.PropertiesList:
+                        obj.addProperty("App::PropertyLength", "Thickness", "1st Nesting",
+                                        "Sheet thickness")
+                    obj.Thickness = thickness
+                if material:
+                    if "Material" not in obj.PropertiesList:
+                        obj.addProperty("App::PropertyString", "Material", "1st Nesting",
+                                        "Sheet material")
+                    obj.Material = material
+        except Exception:
+            App.Console.PrintWarning("1st Nesting: could not store sheet thickness/material\n")
 
     # Create a rectangle wire or a polygon face with holes at the result document origin.
     def _create_sheet_object(self, name, sheet):

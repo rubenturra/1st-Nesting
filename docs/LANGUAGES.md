@@ -112,3 +112,8 @@ To exercise actual Qt controls, run
 an isolated language preference/cache and checks repeated changes, preserved
 input and angles, blocked editing signals, captions, selection and search.
 
+
+
+The November 2026 sheet-thickness and offcut-library strings (`sheet_spec.*`,
+`sheet_thickness.*`, `offcut_library.*`) are translated in English and Spanish;
+other catalogs fall back to English for these keys until they are translated.

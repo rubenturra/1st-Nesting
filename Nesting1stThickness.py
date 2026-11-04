@@ -182,6 +182,39 @@ class ThicknessChecker:
         else:
             message.exec_()
 
+    def block_sheet_mismatch(self):
+        """Return True (after showing why) when nesting must not start because
+        the parts' thickness differs from the thickness set on the sheets."""
+        from Nesting1stSheetSpec import sheet_thickness_problem
+        result = self.measure()
+        problem = sheet_thickness_problem(getattr(self.panel, 'offcuts', []) or [],
+                                          result['parts'], result['labels'])
+        if problem is None:
+            return False
+        message = QtGui.QMessageBox(self.panel.form)
+        message.setIcon(QtGui.QMessageBox.Critical)
+        message.setWindowTitle(tr('sheet_thickness.block_title'))
+        if problem['kind'] == 'mixed_sheets':
+            message.setText(tr('sheet_thickness.mixed_sheets') %
+                            ', '.join(self._dimension(v) for v in problem['values']))
+        else:
+            result['reference'] = problem['reference']
+            result['mismatched'] = set(problem['names'])
+            self._highlight(result)
+            lines = [result['labels'].get(n, n) + ': ' + self._values(result['parts'][n])
+                     for n in problem['names']]
+            shown = lines[:15] + (['…'] if len(lines) > 15 else [])
+            message.setText(tr('sheet_thickness.parts_mismatch') %
+                            (self._dimension(problem['reference']), '\n'.join(shown)))
+            if len(lines) > 15:
+                message.setDetailedText('\n'.join(lines))
+        message.setStandardButtons(QtGui.QMessageBox.Ok)
+        if hasattr(message, 'exec'):
+            message.exec()
+        else:
+            message.exec_()
+        return True
+
     def refresh(self, warn=True, force=False):
         self.timer.stop()
         result = self.measure()

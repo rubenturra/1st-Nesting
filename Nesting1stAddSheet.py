@@ -9,6 +9,8 @@ from Nesting1stLanguages import tr, translate_buttons, ui_call, ui_widget, regis
 
 import os
 import FreeCAD as App
+from Nesting1stSheetSpec import (COMMON_MATERIALS, format_number,
+                                 parse_offcut_filename, same_thickness)
 from PySide import QtGui, QtCore
 
 MM_PER_INCH = 25.4
@@ -38,8 +40,11 @@ class AddSheetOrOffcutDialog(QtGui.QDialog):
         self._last_width_mm = 2000.0
         self._last_height_mm = 2800.0
         self._last_quantity = 1
+        self._last_thickness_mm = 0.0
+        self._last_material = ""
 
         self._load_last_rectangular_sheet()
+        self._load_last_spec()
 
         ui_call(self, 'setWindowTitle', tr('add_sheet_or_offcut'))
         self.setModal(True)
@@ -195,6 +200,57 @@ class AddSheetOrOffcutDialog(QtGui.QDialog):
         except Exception:
             pass
 
+    # Restore the last thickness/material; the parts' gauge wins when known.
+    def _load_last_spec(self):
+        p = self._prefs()
+        if p:
+            try:
+                self._last_thickness_mm = max(0.0, float(str(
+                    p.GetString("LastSheetThicknessMm", "0")).replace(",", ".")))
+            except Exception:
+                self._last_thickness_mm = 0.0
+            try:
+                self._last_material = str(p.GetString("LastSheetMaterial", "") or "")
+            except Exception:
+                self._last_material = ""
+        self._parts_thickness_mm = self._read_parts_thickness()
+        if self._parts_thickness_mm:
+            self._last_thickness_mm = self._parts_thickness_mm
+
+    # Reference thickness of the 3D parts already in the panel, or 0.
+    def _read_parts_thickness(self):
+        try:
+            result = self._panel._thickness_checker.measure()
+            reference = result.get("reference")
+            return float(reference) if reference else 0.0
+        except Exception:
+            return 0.0
+
+    def _save_last_spec(self, thickness_mm, material):
+        p = self._prefs()
+        if not p:
+            return
+        try:
+            p.SetString("LastSheetThicknessMm", "%.6f" % float(thickness_mm))
+            p.SetString("LastSheetMaterial", str(material or ""))
+        except Exception:
+            pass
+
+    # Read the thickness (mm) and material fields; None when the thickness is invalid.
+    def _read_spec(self):
+        text = str(self.thickness_edit.text() or "").strip()
+        if not text:
+            thickness_mm = 0.0
+        else:
+            value = self._parse_decimal(text)
+            if value is None or value < 0.0:
+                self._show_warning(tr('sheet_spec.invalid_thickness'))
+                return None
+            thickness_mm = self._display_to_mm(value)
+        material = str(self.material_combo.currentText() or "").strip()
+        self._save_last_spec(thickness_mm, material)
+        return thickness_mm, material
+
     # Refresh the width and height labels with the active unit suffix.
     def _update_dimension_labels(self):
         suffix = (
@@ -210,6 +266,10 @@ class AddSheetOrOffcutDialog(QtGui.QDialog):
         ui_call(
             self.height_label, 'setText', tr('sheet_height_y_s') % suffix
         )
+
+        ui_call(
+            self.thickness_label, 'setText', tr('sheet_spec.thickness_s') % suffix
+        )
     
     # Build the sheet and DXF sections and the Cancel button.
     def _build_ui(self):
@@ -221,6 +281,7 @@ class AddSheetOrOffcutDialog(QtGui.QDialog):
         info.setWordWrap(True)
         layout.addWidget(info)
 
+        self._build_spec_section(layout)
         self._build_rectangular_sheet_section(layout)
         self._build_dxf_section(layout)
 
@@ -230,6 +291,43 @@ class AddSheetOrOffcutDialog(QtGui.QDialog):
         buttons.rejected.connect(self.reject)
         translate_buttons(buttons)
         layout.addWidget(buttons)
+
+    # Thickness and material shared by the rectangular sheet and the DXF offcut.
+    def _build_spec_section(self, parent_layout):
+        box = ui_widget(QtGui.QGroupBox, tr('sheet_spec.group'))
+        grid = QtGui.QGridLayout(box)
+
+        self.thickness_label = QtGui.QLabel()
+        grid.addWidget(self.thickness_label, 0, 0)
+        self.thickness_edit = QtGui.QLineEdit(
+            self._format_dimension(self._last_thickness_mm)
+            if self._last_thickness_mm > 0.0 else "")
+        self.thickness_edit.setValidator(
+            QtGui.QDoubleValidator(0.0, 100000.0, 3, self))
+        ui_call(self.thickness_edit, 'setToolTip', tr('sheet_spec.thickness_tooltip'))
+        grid.addWidget(self.thickness_edit, 0, 1)
+
+        grid.addWidget(ui_widget(QtGui.QLabel, tr('sheet_spec.material')), 1, 0)
+        self.material_combo = QtGui.QComboBox()
+        self.material_combo.setEditable(True)
+        self.material_combo.addItem("")
+        self.material_combo.addItems(list(COMMON_MATERIALS))
+        self.material_combo.setEditText(self._last_material)
+        try:
+            ui_call(self.material_combo.lineEdit(), 'setPlaceholderText',
+                    tr('sheet_spec.material_placeholder'))
+        except Exception:
+            pass
+        grid.addWidget(self.material_combo, 1, 1)
+
+        if self._parts_thickness_mm:
+            info = ui_widget(QtGui.QLabel, tr('sheet_spec.parts_reference_s')
+                             % (self._format_dimension(self._parts_thickness_mm)
+                                + (" inch" if self._display_units == "inch" else " mm")))
+            info.setStyleSheet("color: gray;")
+            grid.addWidget(info, 2, 0, 1, 2)
+
+        parent_layout.addWidget(box)
 
     # Add the width, height, quantity and Add rectangular sheet controls.
     def _build_rectangular_sheet_section(self, parent_layout):
@@ -323,6 +421,13 @@ class AddSheetOrOffcutDialog(QtGui.QDialog):
         )
         dxf_layout.addWidget(self.add_dxf_btn)
 
+        self.library_btn = ui_widget(
+            QtGui.QPushButton, tr('offcut_library.button')
+        )
+        ui_call(self.library_btn, 'setToolTip', tr('offcut_library.tooltip'))
+        self.library_btn.clicked.connect(self._on_library_clicked)
+        dxf_layout.addWidget(self.library_btn)
+
         parent_layout.addWidget(dxf_box)
 
     # Validate dimensions and quantity, store the result in millimetres and accept the dialog.
@@ -358,6 +463,10 @@ class AddSheetOrOffcutDialog(QtGui.QDialog):
                 )
                 return
 
+            spec = self._read_spec()
+            if spec is None:
+                return
+
             # Store all geometry internally in mm.
             width_mm = self._display_to_mm(
                 width_value
@@ -378,6 +487,8 @@ class AddSheetOrOffcutDialog(QtGui.QDialog):
                 "width": width_mm,
                 "height": height_mm,
                 "quantity": quantity,
+                "thickness": spec[0],
+                "material": spec[1],
             }
 
             self.accept()
@@ -407,12 +518,48 @@ class AddSheetOrOffcutDialog(QtGui.QDialog):
             )
             return
 
-        quantity = int(self.dxf_quantity_spin.value())
+        self._accept_dxf(path, int(self.dxf_quantity_spin.value()))
+
+    # Pick a saved offcut from the library folder (filtered by thickness).
+    def _on_library_clicked(self):
+        from Nesting1stOffcutLibrary import OffcutLibraryDialog
+        text = str(self.thickness_edit.text() or "").strip()
+        value = self._parse_decimal(text) if text else None
+        thickness_mm = self._display_to_mm(value) if value else 0.0
+        dialog = OffcutLibraryDialog(self, thickness_mm=thickness_mm,
+                                     display_units=self._display_units)
+        if dialog.exec_() != QtGui.QDialog.Accepted or not dialog.selected_path:
+            return
+        self._accept_dxf(dialog.selected_path, int(self.dxf_quantity_spin.value()))
+
+    # Reconcile the dialog thickness with the one written in the file name, then accept.
+    def _accept_dxf(self, path, quantity):
+        spec = self._read_spec()
+        if spec is None:
+            return
+        thickness_mm, material = spec
+        name_thickness = parse_offcut_filename(path)["thickness"]
+        if name_thickness:
+            if not thickness_mm:
+                thickness_mm = name_thickness
+            elif not same_thickness(name_thickness, thickness_mm):
+                answer = QtGui.QMessageBox.question(
+                    self, tr('sheet_spec.dxf_name_thickness_title'),
+                    tr('sheet_spec.dxf_name_thickness_q')
+                    % (format_number(name_thickness) + " mm",
+                       format_number(thickness_mm) + " mm",
+                       format_number(name_thickness) + " mm"),
+                    QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
+                    QtGui.QMessageBox.Yes)
+                if answer == QtGui.QMessageBox.Yes:
+                    thickness_mm = name_thickness
 
         self.result_type = "dxf"
         self.result_data = {
             "path": path,
             "quantity": quantity,
+            "thickness": thickness_mm,
+            "material": material,
         }
 
         self.accept()

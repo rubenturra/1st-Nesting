@@ -519,6 +519,8 @@ def material_identity_key(material):
         return (
             "dxf",
             os.path.normcase(path),
+            number(material.get("thickness", 0.0)),
+            str(material.get("material", "") or "").strip().lower(),
         )
 
     if material_type in (

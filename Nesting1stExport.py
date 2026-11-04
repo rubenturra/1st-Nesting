@@ -4,6 +4,7 @@ Exports nesting CLI input.json and the FreeCAD nesting_session.json mapping.
 """
 from Nesting1stLanguages import tr
 
+from Nesting1stSheetSpec import material_thickness, material_name
 import FreeCAD as App
 from PySide import QtGui, QtCore
 import FreeCADGui as Gui
@@ -1580,7 +1581,9 @@ def export_nesting_steps(panel):
                     "path": material.get(
                         "path",
                         ""
-                    )
+                    ),
+                    "thickness": material_thickness(material),
+                    "material": material_name(material),
                 }
 
                 if "width" in sheet:

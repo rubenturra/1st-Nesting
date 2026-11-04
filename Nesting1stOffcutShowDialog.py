@@ -12,6 +12,7 @@ import os
 
 from Nesting1stAddSheet import AddSheetOrOffcutDialog
 from Nesting1stOffcuts import (extract_offcut_from_dxf,add_or_increment_material,polygon_area)
+from Nesting1stSheetSpec import material_thickness, material_name, spec_suffix
 
 import FreeCAD as App
 from PySide import QtGui, QtCore
@@ -1059,6 +1060,9 @@ def _format_display_dimension(value_mm, units):
 class OffcutShowDialog(QtGui.QDialog):
     # Format rectangular sheet dimensions using active display units.
     def _format_card_label(self, off):
+        return self._format_card_base_label(off) + spec_suffix(off, self._display_units)
+
+    def _format_card_base_label(self, off):
         """
         Format rectangular sheet dimensions using active display units.
         """
@@ -1895,6 +1899,8 @@ class OffcutMaterialsController(object):
                 "count": quantity,
                 "quantity": quantity,
                 "duplicate": False,
+                "thickness": material_thickness(data),
+                "material": material_name(data),
             }
 
             self.panel._offcut_next_id += 1
@@ -2001,6 +2007,8 @@ class OffcutMaterialsController(object):
                 "quantity": quantity,
                 "count": quantity,
                 "duplicate": False,
+                "thickness": material_thickness(data),
+                "material": material_name(data),
             }
 
             self.panel._offcut_next_id += 1
@@ -2207,6 +2215,11 @@ class OffcutMaterialsController(object):
     # Format rectangular sheet label using the active display units. Internal width and height
     # values are always stored in mm.
     def _format_material_label(self, material):
+        units = str(getattr(self.panel, "display_units", "mm") or "mm").lower()
+        return self._format_material_base_label(material) + spec_suffix(material, units)
+
+    # Sheet dimensions or DXF name, without thickness/material.
+    def _format_material_base_label(self, material):
         """
         Format rectangular sheet label using the active display units.
         Internal width and height values are always stored in mm.
