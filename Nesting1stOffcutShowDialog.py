@@ -2333,6 +2333,7 @@ class OffcutMaterialsController(object):
             )
 
             material_item = ui_widget(QtGui.QTableWidgetItem, label)
+            material_item.setToolTip(label)
             material_item.setFlags(
                 QtCore.Qt.ItemIsEnabled |
                 QtCore.Qt.ItemIsSelectable
