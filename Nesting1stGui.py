@@ -714,6 +714,40 @@ class NestingTaskPanel:
         register_window(self.form)
         from Nesting1stThickness import ThicknessChecker
         self._thickness_checker = ThicknessChecker(self)
+        # Reopening the panel (e.g. after Go to CAM) keeps the parts of the
+        # preview document in the list instead of starting empty.
+        QtCore.QTimer.singleShot(0, self.restore_parts_from_preview)
+
+    # Fill an empty parts list with the parts already in Nesting_Preview.
+    def restore_parts_from_preview(self):
+        try:
+            if self.table.rowCount() - self.control_rows > 0:
+                return
+            name = getattr(self, "preview_doc_name", None) or "Nesting_Preview"
+            if name not in App.listDocuments():
+                return
+            p_doc = App.getDocument(name)
+            from Nesting1stQuantity import SOURCE_OBJ
+            parts = [o for o in p_doc.Objects
+                     if o.TypeId == "Part::Feature" and SOURCE_OBJ in o.PropertiesList
+                     and not o.InList and o.Shape is not None and not o.Shape.isNull()]
+            if not parts:
+                return
+            self._suppress_qty_update = True
+            try:
+                for obj in parts:
+                    self._add_preview_object_to_table(p_doc, obj.Name)
+            finally:
+                self._suppress_qty_update = False
+            try:
+                self._thickness_checker.refresh(force=True)
+            except Exception:
+                pass
+            App.Console.PrintMessage("1st Nesting: %d parts restored from %s\n" % (len(parts), name))
+        except (RuntimeError, AttributeError):
+            pass
+        except Exception:
+            App.Console.PrintWarning("1st Nesting: could not restore the parts list\n" + traceback.format_exc())
 
     def export_nesting_result_svg(self):
         from Nesting1stResultSVG import export_from_panel
