@@ -3829,8 +3829,7 @@ class NestingTaskPanel:
                 last_importer._show_result_view()
             skipped = getattr(self, "_batch_skipped", None) or []
             if self._batch_done:
-                QtGui.QMessageBox.information(self.form, tr('sheet_thickness.batch_done_title'),
-                                              self._batch_summary_text(self._batch_done, skipped))
+                self._show_batch_summary(self._batch_summary_text(self._batch_done, skipped))
         except Exception:
             progress.close()
             for job in jobs:
@@ -3898,9 +3897,24 @@ class NestingTaskPanel:
         self._batch_part_names = self._batch_sheet_ids = None
         skipped = getattr(self, "_batch_skipped", None) or []
         if success and self._batch_done:
-            QtGui.QMessageBox.information(self.form, tr('sheet_thickness.batch_done_title'),
-                                          self._batch_summary_text(self._batch_done, skipped))
+            self._show_batch_summary(self._batch_summary_text(self._batch_done, skipped))
         self._batch_skipped = []
+
+    # The summary window, or (button "Hacer todo") keep the text for the final report.
+    def _show_batch_summary(self, text):
+        sink = getattr(self, "_summary_sink", None)
+        if sink is not None:
+            sink.append(str(text))
+            return
+        QtGui.QMessageBox.information(self.form, tr('sheet_thickness.batch_done_title'), text)
+
+    # True while a nesting (or its queue of thicknesses) is still running.
+    def nesting_busy(self):
+        try:
+            return bool(self._nesting_manager.is_running() or getattr(self, "_batch_queue", None)
+                        or getattr(self, "_batch_current", None) is not None)
+        except Exception:
+            return False
 
     # One line per thickness: document, sheets used, parts nested and parts left.
     def _batch_summary_text(self, batches, skipped):
