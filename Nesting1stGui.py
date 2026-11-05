@@ -145,23 +145,40 @@ def parallel_thickness_enabled():
         return True
 
 
-def close_nesting_panel():
-    """Close the 1st Nesting task panel (as its Cancel button does)."""
-    import gc
+def hide_tasks_window():
+    """Hide the empty Tasks window (FreeCAD shows it again for the next task)."""
     try:
-        if not Gui.Control.activeDialog():
-            return False
+        if Gui.Control.activeDialog():
+            return
+        for dock in Gui.getMainWindow().findChildren(QtGui.QDockWidget):
+            if dock.objectName() in ("Tasks", "TaskView", "Task View"):
+                dock.hide()
     except Exception:
-        return False
-    for obj in gc.get_objects():
-        if type(obj).__name__ == "NestingTaskPanel":
-            try:
-                if obj.form is not None and obj.form.isVisible():
-                    obj.reject()
-                    return True
-            except (RuntimeError, AttributeError):
-                continue
-    return False
+        pass
+
+
+def close_nesting_panel():
+    """Close the 1st Nesting task panel (as its Cancel button does) and the
+    Tasks window that held it."""
+    import gc
+    closed = False
+    try:
+        active = bool(Gui.Control.activeDialog())
+    except Exception:
+        active = False
+    if active:
+        for obj in gc.get_objects():
+            if type(obj).__name__ == "NestingTaskPanel":
+                try:
+                    if obj.form is not None and obj.form.isVisible():
+                        obj.reject()
+                        closed = True
+                        break
+                except (RuntimeError, AttributeError):
+                    continue
+    hide_tasks_window()
+    QtCore.QTimer.singleShot(150, hide_tasks_window)   # after FreeCAD finished closing it
+    return closed
 
 
 def batch_stats(result_data):
