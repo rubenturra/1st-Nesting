@@ -518,25 +518,18 @@ class NestingTaskPanel:
             )
         )
 
+        # "Automatic" (data 0) uses every core but one, shared by the engines
+        # running at the same time, and leaves room for LinuxCNC.
+        self.cpu_cores_combo.addItem(tr('cpu_cores.auto'), 0)
         for core_count in range(
             1,
             max_cpu_cores + 1
         ):
             self.cpu_cores_combo.addItem(
-                str(core_count)
+                str(core_count), core_count
             )
 
-        default_cpu_cores = max(
-            1,
-            min(
-                detected_cores,
-                16
-            )
-        )
-
-        self.cpu_cores_combo.setCurrentText(
-            str(default_cpu_cores)
-        )
+        self.cpu_cores_combo.setCurrentIndex(0)
 
         ui_call(
             self.cpu_cores_combo, 'setToolTip', tr('number_of_cpu_worker_cores_available_to_the_nesting_calculation_the_list_is_based_on_the_l')
@@ -3730,6 +3723,7 @@ class NestingTaskPanel:
         progress.setMinimumDuration(0)
         progress.setMinimumWidth(460)
         self.run_btn.setEnabled(False)
+        self._parallel_engines = len(batches)   # automatic cores are shared by the engines
         try:
             for k, batch in enumerate(batches):
                 progress.setLabelText(tr('sheet_thickness.parallel_preparing') % (
@@ -3753,9 +3747,9 @@ class NestingTaskPanel:
                     shutil.copy2(os.path.join(directory, name), os.path.join(folder, name))
                 data = _load_json_file(os.path.join(folder, "input.json"))
                 log = open(os.path.join(folder, "clinesting.log"), "wb")
-                proc = subprocess.Popen([cli, "--input", os.path.join(folder, "input.json")], cwd=folder,
-                                        stdout=log, stderr=subprocess.STDOUT,
-                                        creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
+                from Nesting1stCpu import low_priority
+                command, options = low_priority([cli, "--input", os.path.join(folder, "input.json")])
+                proc = subprocess.Popen(command, cwd=folder, stdout=log, stderr=subprocess.STDOUT, **options)
                 jobs.append(dict(batch=batch, folder=folder, proc=proc, log=log, done=False,
                                  cancel=os.path.join(folder, data.get("output", {}).get("cancelFile", ".cancel"))))
             self._batch_part_names = self._batch_sheet_ids = None
@@ -3845,6 +3839,7 @@ class NestingTaskPanel:
             App.Console.PrintError(traceback.format_exc())
             QtGui.QMessageBox.critical(self.form, tr('nesting_failed'), traceback.format_exc()[-600:])
         finally:
+            self._parallel_engines = 1
             self._batch_part_names = self._batch_sheet_ids = None
             self._batch_current = None
             self._batch_skipped = []
@@ -4675,30 +4670,14 @@ class NestingTaskPanel:
             )
             
             try:
-                saved_cpu_cores = int(
-                    p.GetInt(
-                        "CpuCores",
-                        self.cpu_cores_combo.currentText()
-                    )
-                )
-
-                max_index = (
-                    self.cpu_cores_combo.count()
-                    - 1
-                )
-
-                saved_cpu_cores = max(
-                    1,
-                    min(
-                        saved_cpu_cores,
-                        max_index + 1
-                    )
-                )
-
-                self.cpu_cores_combo.setCurrentText(
-                    str(saved_cpu_cores)
-                )
-
+                # 0 = automatic (also the default). Older versions saved a number.
+                saved_cpu_cores = int(p.GetInt("CpuCoresMode", 0)) if p.GetBool("CpuCoresAutoMigrated", False) \
+                    else 0
+                if saved_cpu_cores <= 0:
+                    self.cpu_cores_combo.setCurrentIndex(0)
+                else:
+                    index = self.cpu_cores_combo.findData(min(saved_cpu_cores, self.cpu_cores_combo.count() - 1))
+                    self.cpu_cores_combo.setCurrentIndex(max(0, index))
             except Exception:
                 pass
 
@@ -4793,17 +4772,12 @@ class NestingTaskPanel:
             )
 
             try:
-                p.SetInt(
-                    "CpuCores",
-                    int(
-                        self.cpu_cores_combo.currentText()
-                    )
-                )
+                value = self.cpu_cores_combo.currentData()
+                p.SetInt("CpuCoresMode", int(value or 0))
+                p.SetBool("CpuCoresAutoMigrated", True)
+                p.SetInt("CpuCores", int(value) if value else 0)
             except Exception:
-                p.SetInt(
-                    "CpuCores",
-                    1
-                )
+                p.SetInt("CpuCoresMode", 0)
 
             # Persist nesting CLI search and GPU settings.
             for attr, key, _default in self.CLI_TEXT_SETTINGS:

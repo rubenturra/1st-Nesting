@@ -1874,9 +1874,10 @@ class NestingProcessManager(object):
             from Nesting1stAsync import BackgroundCall, discard_process
             command = [self.cli_path, "--input", self.input_path]
             log = self._log
+            from Nesting1stCpu import low_priority
+            run_command, run_options = low_priority(command)
             self._launch_task = BackgroundCall(lambda cancelled: subprocess.Popen(
-                command, cwd=directory, stdout=log, stderr=subprocess.STDOUT,
-                creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0),
+                run_command, cwd=directory, stdout=log, stderr=subprocess.STDOUT, **run_options),
                 discard=discard_process)
             self._launch_task.start()
             self._launch_timer = QtCore.QTimer(getattr(self.panel, "form", None))

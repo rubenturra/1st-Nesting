@@ -1595,12 +1595,9 @@ def export_nesting_steps(panel):
             hole_clearance = float(spacing)
 
         try:
-            threads = max(
-                1,
-                int(
-                    panel.cpu_cores_combo.currentText()
-                )
-            )
+            from Nesting1stCpu import threads_for
+            threads = threads_for(panel.cpu_cores_combo.currentData() or 0,
+                                  getattr(panel, "_parallel_engines", 1))
         except Exception:
             threads = 1
 

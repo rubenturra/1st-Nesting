@@ -687,5 +687,6 @@
   "sheet_thickness.left_total": "WARNING: %d parts are still not nested (they do not fit on the available sheets). Add more sheets of that thickness.",
   "sheet_thickness.cancelling": "Cancelling all nestings...",
   "sheet_thickness.cancelled": "Nesting cancelled: every thickness was stopped and no result was created.",
-  "sheet_thickness.total": "TOTAL: %d parts nested on %d sheet(s)"
+  "sheet_thickness.total": "TOTAL: %d parts nested on %d sheet(s)",
+  "cpu_cores.auto": "Automatic"
 }
