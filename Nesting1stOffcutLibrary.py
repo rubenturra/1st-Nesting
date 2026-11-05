@@ -53,7 +53,7 @@ class OffcutLibraryDialog(QtGui.QDialog):
         self._units = display_units if display_units in ("mm", "inch") else "mm"
         ui_call(self, 'setWindowTitle', tr('offcut_library.title'))
         self.setModal(True)
-        self.resize(640, 420)
+        self.resize(1040, 480)
         self._build_ui()
         register_window(self)
         self._load(library_folder())
@@ -99,7 +99,17 @@ class OffcutLibraryDialog(QtGui.QDialog):
             pass
         self.table.itemDoubleClicked.connect(lambda *_: self._accept_selected())
         self.table.itemSelectionChanged.connect(self._update_buttons)
-        layout.addWidget(self.table, 1)
+        self.table.itemSelectionChanged.connect(self._update_preview)
+        # The list on the left, the selected offcut drawn on the right.
+        from Nesting1stDxfPreview import OffcutPreview
+        self.preview = OffcutPreview()
+        split = QtGui.QSplitter(QtCore.Qt.Horizontal)
+        split.addWidget(self.table)
+        split.addWidget(self.preview)
+        split.setStretchFactor(0, 3)
+        split.setStretchFactor(1, 2)
+        split.setSizes([600, 420])
+        layout.addWidget(split, 1)
 
         self.empty_label = QtGui.QLabel()
         self.empty_label.setStyleSheet("color: gray;")
@@ -208,6 +218,24 @@ class OffcutLibraryDialog(QtGui.QDialog):
     def _update_buttons(self):
         self.use_btn.setEnabled(bool(self.table.selectedItems()))
         self.open_btn.setEnabled(bool(self.folder_edit.text()))
+
+    def _selected_path(self):
+        rows = self.table.selectionModel().selectedRows() if self.table.selectionModel() else []
+        if not rows:
+            return None
+        item = self.table.item(rows[0].row(), 0)
+        return item.data(QtCore.Qt.UserRole + 1) if item else None
+
+    def _update_preview(self):
+        path = self._selected_path()
+        entry = next((e for e in self._entries if e["path"] == path), None)
+        info = []
+        if entry:
+            if entry["thickness"]:
+                info.append(self._thickness_text(entry["thickness"]))
+            if entry["area_m2"]:
+                info.append("%.2f m²" % entry["area_m2"])
+        self.preview.set_path(str(path) if path else None, "  ·  ".join(info))
 
     def _accept_selected(self):
         rows = self.table.selectionModel().selectedRows() if self.table.selectionModel() else []
