@@ -1,6 +1,7 @@
 """Sheet stock: keep the Sheet & Offcut Materials list between sessions.
 
-The list is written to ``<FreeCAD user data>/1st-Nesting/sheet_stock.json``
+The list is written to ``<FreeCAD user data>/IAnesting/sheet_stock.json``
+(the old ``1st-Nesting`` folder is moved there the first time)
 after every change and restored when the panel opens. DXF offcuts keep their
 imported geometry, so they stay usable even if the DXF file is moved.
 Set ``BaseApp/Preferences/Mod/IPNesting/KeepSheetStock`` to False to disable.
@@ -17,7 +18,14 @@ def stock_path(user_dir=None):
     if user_dir is None:
         import FreeCAD as App
         user_dir = App.getUserAppDataDir()
-    return os.path.join(user_dir, "1st-Nesting", FILE_NAME)
+    new = os.path.join(user_dir, "IAnesting")
+    old = os.path.join(user_dir, "1st-Nesting")
+    if not os.path.isdir(new) and os.path.isdir(old):
+        try:
+            os.rename(old, new)
+        except OSError:
+            return os.path.join(old, FILE_NAME)
+    return os.path.join(new, FILE_NAME)
 
 
 def enabled():
