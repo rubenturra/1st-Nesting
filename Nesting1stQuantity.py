@@ -1,7 +1,7 @@
 """Part quantity stored on the design object.
 
 A Body (or any part) can carry an integer property ``Cantidad`` (group
-"Fabricación"). 1st Nesting reads it when the part is added and writes the
+"Fabricación"). IAnesting reads it when the part is added and writes the
 table quantity back to it, so the quantity is saved with the .FCStd file.
 ``Quantity`` and ``NestingQuantity`` are also read for other languages/tools.
 """
@@ -34,7 +34,7 @@ def write_quantity(obj, quantity, create=True):
             if not create:
                 return False
             obj.addProperty("App::PropertyInteger", PROPERTY, GROUP,
-                            "Número de piezas a fabricar (1st Nesting)")
+                            "Número de piezas a fabricar (IAnesting)")
         if int(getattr(obj, PROPERTY)) != quantity:
             setattr(obj, PROPERTY, quantity)
         return True
@@ -47,7 +47,7 @@ def remember_source(preview_obj, source_obj):
     try:
         for name in (SOURCE_DOC, SOURCE_OBJ):
             if name not in preview_obj.PropertiesList:
-                preview_obj.addProperty("App::PropertyString", name, "1st Nesting")
+                preview_obj.addProperty("App::PropertyString", name, "IAnesting")
         preview_obj.SourceDocument = source_obj.Document.Name
         preview_obj.SourceObject = source_obj.Name
     except Exception:

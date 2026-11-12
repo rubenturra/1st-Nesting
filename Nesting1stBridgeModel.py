@@ -426,7 +426,7 @@ def store_result_data(document, data, object_name):
     snapshot['placements'] = [dict(placement, _bridge_object_name=object_name(placement))
                               for placement in data.get('placements', [])]
     meta = document.addObject('App::FeaturePython', 'NestingResultData')
-    meta.addProperty('App::PropertyString', 'ResultJson', '1st Nesting')
+    meta.addProperty('App::PropertyString', 'ResultJson', 'IAnesting')
     meta.ResultJson = json.dumps(snapshot)
     if App.GuiUp:
         meta.ViewObject.Visibility = False
@@ -505,9 +505,9 @@ def create_document(layout, translate):
     document = App.newDocument('Nesting_Bridges')
     try:
         metadata = document.addObject('App::FeaturePython', 'NestingBridgeData')
-        metadata.addProperty('App::PropertyString', 'BridgesJson', '1st Nesting')
-        metadata.addProperty('App::PropertyString', 'ResultJson', '1st Nesting')
-        metadata.addProperty('App::PropertyString', 'SourceShapesJson', '1st Nesting')
+        metadata.addProperty('App::PropertyString', 'BridgesJson', 'IAnesting')
+        metadata.addProperty('App::PropertyString', 'ResultJson', 'IAnesting')
+        metadata.addProperty('App::PropertyString', 'SourceShapesJson', 'IAnesting')
         metadata.BridgesJson = json.dumps(dict(version=2, units='mm', bridges=layout.serialized_bridges()))
         metadata.ResultJson = json.dumps(layout.data)
         metadata.SourceShapesJson = json.dumps({str(part['index']):
@@ -532,11 +532,11 @@ def create_document(layout, translate):
                 obj.Label = ('%s %d · %s' % (translate('bridge.joined_parts'), first['index']+1,
                     ' + '.join(part['label'] for part in component['parts']))) if joined else first['label']
                 obj.Shape = shape
-                obj.addProperty('App::PropertyIntegerList', 'SourcePartIndices', '1st Nesting')
+                obj.addProperty('App::PropertyIntegerList', 'SourcePartIndices', 'IAnesting')
                 obj.SourcePartIndices = [part['index'] for part in component['parts']]
-                obj.addProperty('App::PropertyStringList', 'SourceLabels', '1st Nesting')
+                obj.addProperty('App::PropertyStringList', 'SourceLabels', 'IAnesting')
                 obj.SourceLabels = [part['label'] for part in component['parts']]
-                obj.addProperty('App::PropertyIntegerList', 'BridgeIds', '1st Nesting')
+                obj.addProperty('App::PropertyIntegerList', 'BridgeIds', 'IAnesting')
                 obj.BridgeIds = [bridge['id'] for bridge in component['bridges']]
                 add_to_sheet_group(group, obj)
                 if App.GuiUp:

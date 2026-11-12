@@ -66,10 +66,10 @@ class GrainUIController:
         """Save the complete pre-texture placement once per checked interval."""
         if obj is None or hasattr(obj, 'IPNestingStandardPlacement'):
             return
-        obj.addProperty('App::PropertyPlacement', 'IPNestingStandardPlacement', '1st Nesting')
+        obj.addProperty('App::PropertyPlacement', 'IPNestingStandardPlacement', 'IAnesting')
         obj.IPNestingStandardPlacement = obj.Placement
         obj.setEditorMode('IPNestingStandardPlacement', 2)
-        obj.addProperty('App::PropertyString', 'IPNestingStandardRotations', '1st Nesting')
+        obj.addProperty('App::PropertyString', 'IPNestingStandardRotations', 'IAnesting')
         obj.IPNestingStandardRotations = rotations
         obj.setEditorMode('IPNestingStandardRotations', 2)
 
@@ -94,7 +94,7 @@ class GrainUIController:
             if obj is None:
                 continue
             if not hasattr(obj, 'GrainAngleDeg'):
-                obj.addProperty('App::PropertyInteger', 'GrainAngleDeg', '1st Nesting',
+                obj.addProperty('App::PropertyInteger', 'GrainAngleDeg', 'IAnesting',
                                 tr('absolute_grain_angle_in_degrees_vs_x'))
             # An explicit axis choice or texture toggle starts a new angle baseline.
             if hasattr(obj, 'IPNestingCustomAngleDeg'):
@@ -568,7 +568,7 @@ class GrainUIController:
                                 obj.addProperty(
                                     "App::PropertyInteger",
                                     "GrainAngleDeg",
-                                    "1st Nesting",
+                                    "IAnesting",
                                     tr('absolute_grain_angle_in_degrees_vs_x')
                                 )
                             except Exception:
@@ -944,10 +944,10 @@ class GrainUIController:
                 angle_deg = 0.0
 
             try:
-                obj.addProperty("App::PropertyFloat", "IPNestingStdRotAxisX", "1st Nesting", tr('saved_standard_rotation_axis_x'))
-                obj.addProperty("App::PropertyFloat", "IPNestingStdRotAxisY", "1st Nesting", tr('saved_standard_rotation_axis_y'))
-                obj.addProperty("App::PropertyFloat", "IPNestingStdRotAxisZ", "1st Nesting", tr('saved_standard_rotation_axis_z'))
-                obj.addProperty("App::PropertyFloat", "IPNestingStdRotAngleDeg", "1st Nesting", tr('saved_standard_rotation_angle_deg'))
+                obj.addProperty("App::PropertyFloat", "IPNestingStdRotAxisX", "IAnesting", tr('saved_standard_rotation_axis_x'))
+                obj.addProperty("App::PropertyFloat", "IPNestingStdRotAxisY", "IAnesting", tr('saved_standard_rotation_axis_y'))
+                obj.addProperty("App::PropertyFloat", "IPNestingStdRotAxisZ", "IAnesting", tr('saved_standard_rotation_axis_z'))
+                obj.addProperty("App::PropertyFloat", "IPNestingStdRotAngleDeg", "IAnesting", tr('saved_standard_rotation_angle_deg'))
             except Exception:
                 # properties might already exist or addProperty can fail in some contexts
                 pass

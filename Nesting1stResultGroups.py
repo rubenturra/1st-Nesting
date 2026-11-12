@@ -6,7 +6,7 @@ def create_sheet_group(document, name, label, offset):
     """Store the presentation offset without an App::Part geometry container."""
     group = document.addObject('App::DocumentObjectGroup', name)
     group.Label = label
-    group.addProperty('App::PropertyVector', 'DisplayOffset', '1st Nesting',
+    group.addProperty('App::PropertyVector', 'DisplayOffset', 'IAnesting',
                       'Display translation from sheet-local millimetre coordinates.')
     group.DisplayOffset = App.Vector(offset, 0, 0)
     group.setEditorMode('DisplayOffset', 1)

@@ -776,16 +776,16 @@ class NestingResultImporter(object):
                     continue
                 if thickness:
                     if "Thickness" not in obj.PropertiesList:
-                        obj.addProperty("App::PropertyLength", "Thickness", "1st Nesting",
+                        obj.addProperty("App::PropertyLength", "Thickness", "IAnesting",
                                         "Sheet thickness")
                     obj.Thickness = thickness
                 if material:
                     if "Material" not in obj.PropertiesList:
-                        obj.addProperty("App::PropertyString", "Material", "1st Nesting",
+                        obj.addProperty("App::PropertyString", "Material", "IAnesting",
                                         "Sheet material")
                     obj.Material = material
         except Exception:
-            App.Console.PrintWarning("1st Nesting: could not store sheet thickness/material\n")
+            App.Console.PrintWarning("IAnesting: could not store sheet thickness/material\n")
 
     # Create a rectangle wire or a polygon face with holes at the result document origin.
     def _create_sheet_object(self, name, sheet):
@@ -1127,7 +1127,7 @@ class NestingResultImporter(object):
                 result_object.addProperty(
                     "App::PropertyString",
                     "SourcePartId",
-                    "1st Nesting"
+                    "IAnesting"
                 )
 
                 result_object.SourcePartId = str(
@@ -1140,7 +1140,7 @@ class NestingResultImporter(object):
                 result_object.addProperty(
                     "App::PropertyInteger",
                     "SourcePartIndex",
-                    "1st Nesting"
+                    "IAnesting"
                 )
 
                 result_object.SourcePartIndex = (
@@ -1154,7 +1154,7 @@ class NestingResultImporter(object):
                 result_object.addProperty(
                     "App::PropertyInteger",
                     "InstanceIndex",
-                    "1st Nesting"
+                    "IAnesting"
                 )
 
                 result_object.InstanceIndex = (
@@ -1168,7 +1168,7 @@ class NestingResultImporter(object):
                 result_object.addProperty(
                     "App::PropertyFloat",
                     "NestingRotation",
-                    "1st Nesting"
+                    "IAnesting"
                 )
 
                 result_object.NestingRotation = (

@@ -1076,10 +1076,10 @@ def _grain_offset(points, grain):
     )
 
 
-# Convert one 1st Nesting material record to a nesting CLI sheet record.
+# Convert one IAnesting material record to a nesting CLI sheet record.
 def _material_to_cli_sheet(material):
     """
-    Convert one 1st Nesting material record
+    Convert one IAnesting material record
     to a nesting CLI sheet record.
 
     Every sheet, including rectangular sheets, is exported as a polygon.
@@ -1994,7 +1994,7 @@ def export_nesting_steps(panel):
 
         session_payload = {
             "application": "FreeCAD",
-            "workbench": "1st Nesting",
+            "workbench": "IAnesting",
             "units": "mm",
             "engine_part_metadata": {part['id']: part.get('_ip_nesting', {})
                                      for part in engine_parts},

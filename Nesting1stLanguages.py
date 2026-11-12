@@ -1,4 +1,4 @@
-"""JSON-backed 1st Nesting translations and the workbench Settings menu."""
+"""JSON-backed IAnesting translations and the workbench Settings menu."""
 
 import json
 import os
@@ -185,7 +185,7 @@ def _refresh_widget(obj):
             obj.blockSignals(previous)
 
 
-# Refresh only 1st Nesting-bound controls and its two commands in the current GUI.
+# Refresh only IAnesting-bound controls and its two commands in the current GUI.
 def refresh_ui():
     try:
         from PySide import QtGui
@@ -287,7 +287,7 @@ def perimeter_object_labels(canonical, kind):
 def tag_perimeter(obj, canonical, kind):
     for name in ("IPNestingCaptionKey", "IPNestingCaptionKind"):
         if name not in obj.PropertiesList:
-            obj.addProperty("App::PropertyString", name, "1st Nesting")
+            obj.addProperty("App::PropertyString", name, "IAnesting")
         obj.setEditorMode(name, 2)
     obj.IPNestingCaptionKey = _perimeter_key(canonical)
     obj.IPNestingCaptionKind = kind

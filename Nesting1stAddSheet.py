@@ -73,7 +73,7 @@ class AddSheetOrOffcutDialog(QtGui.QDialog):
         except Exception:
             return "mm"
 
-    # Return the 1st Nesting FreeCAD preference group, or None when unavailable.
+    # Return the IAnesting FreeCAD preference group, or None when unavailable.
     def _prefs(self):
         try:
             return App.ParamGet(

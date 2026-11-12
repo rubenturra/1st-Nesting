@@ -2,9 +2,9 @@ from Nesting1stLanguages import SettingsCommand
 
 import FreeCADGui as Gui
 
-# Register the 1st Nesting workbench and its toolbar in FreeCAD.
+# Register the IAnesting workbench and its toolbar in FreeCAD.
 class Nesting1stWorkbench(Workbench):
-    MenuText = "1st Nesting"
+    MenuText = "IAnesting"
     
     # Using your color #CF3519 for the placeholder icon
     Icon = """
@@ -39,8 +39,8 @@ class Nesting1stWorkbench(Workbench):
     # Load the nesting panel and place Settings next to Run Nesting in the toolbar.
     def Initialize(self):
         import Nesting1stGui
-        self.appendToolbar("1st Nesting Tools", ["Nesting1st_RunNesting", "Nesting1st_Settings", "Nesting1st_OpenCAM"])
-        self.appendMenu("1st Nesting", ["Nesting1st_RunNesting", "Nesting1st_Settings", "Nesting1st_OpenCAM"])
+        self.appendToolbar("IAnesting Tools", ["Nesting1st_RunNesting", "Nesting1st_Settings", "Nesting1st_OpenCAM"])
+        self.appendMenu("IAnesting", ["Nesting1st_RunNesting", "Nesting1st_Settings", "Nesting1st_OpenCAM"])
 
     # Return the FreeCAD Python workbench type identifier.
     def GetClassName(self): 

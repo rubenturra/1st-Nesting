@@ -368,9 +368,9 @@ def import_2d_file_to_preview(panel, path, fmt=None, make_faces_if_possible=True
                 created_names.append(feat.Name)
                 feat.Label = label + (' [%d]' % index if len(components) > 1 else '')
                 feat.Shape = material if make_faces_if_possible else wires
-                feat.addProperty('App::PropertyString', 'SVGSourceFile', '1st Nesting')
+                feat.addProperty('App::PropertyString', 'SVGSourceFile', 'IAnesting')
                 feat.SVGSourceFile = os.path.basename(path)
-                feat.addProperty('App::PropertyInteger', 'SVGPartNumber', '1st Nesting')
+                feat.addProperty('App::PropertyInteger', 'SVGPartNumber', 'IAnesting')
                 feat.SVGPartNumber = index
         elif group_into_single_object:
             compound = _shape_to_compound(imported_shapes)

@@ -1,6 +1,6 @@
 from Nesting1stLanguages import tr
 
-# Rotation helper for 1st Nesting
+# Rotation helper for IAnesting
 # Provides NestingRotator to perform bulk rotations of preview objects
 #
 # Updated: robust checkbox detection and fixed control-row detection bug:

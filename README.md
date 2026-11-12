@@ -1,3 +1,7 @@
+# IAnesting
+
+**IAnesting** es la versión de Rubén (rama `mejoras-ruben`) del banco de trabajo **1st Nesting** de ingussp (licencia MIT, se conserva su aviso). En FreeCAD aparece como «IAnesting»; los módulos siguen con el prefijo `Nesting1st`.
+
 # 1st Nesting
 
 **A FreeCAD workbench for arranging parts on sheets and reusable offcuts, with texture matching and coloured SVG reports.**

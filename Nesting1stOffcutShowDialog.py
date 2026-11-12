@@ -1745,7 +1745,7 @@ class OffcutMaterialsController(object):
             if Nesting1stStock.enabled():
                 Nesting1stStock.save_stock(self.offcuts)
         except Exception:
-            App.Console.PrintWarning("1st Nesting: could not save the sheet stock\n")
+            App.Console.PrintWarning("IAnesting: could not save the sheet stock\n")
 
     # Restore the saved sheet stock into an empty materials list.
     def load_stock(self):
@@ -1768,7 +1768,7 @@ class OffcutMaterialsController(object):
             finally:
                 self._stock_loading = False
         except Exception:
-            App.Console.PrintWarning("1st Nesting: could not load the sheet stock\n"
+            App.Console.PrintWarning("IAnesting: could not load the sheet stock\n"
                                      + traceback.format_exc())
 
     # Expose the parent panel material list.

@@ -1,6 +1,6 @@
 # Nesting1stGrain.py
 """
-Grain preparer utilities for 1st Nesting — improved font/margin sizing.
+Grain preparer utilities for IAnesting — improved font/margin sizing.
 Includes logic for packing grain-specific parts at a designated location .
 """
 from Nesting1stLanguages import tr, perimeter_labels, perimeter_object_labels, tag_perimeter

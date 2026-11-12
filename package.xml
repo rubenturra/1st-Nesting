@@ -7,11 +7,11 @@
   <maintainer email="info@1nesting.com">Inguss Pusmucans (ingussp)</maintainer>
   <author email="ingussp@gmail.com">Inguss Pusmucans (ingussp)</author>
   <license file="LICENSE">MIT</license>
-  <url type="repository" branch="main">https://github.com/ingussp/1st-Nesting</url>
-  <url type="readme">https://github.com/ingussp/1st-Nesting/blob/main/README.md</url>
+  <url type="repository" branch="mejoras-ruben">https://github.com/rubenturra/IAnesting</url>
+  <url type="readme">https://github.com/rubenturra/IAnesting/blob/mejoras-ruben/README.md</url>
   <url type="website">https://1nesting.com/</url>
   <url type="documentation">https://1nesting.com/freecad/</url>
-  <url type="bugtracker">https://github.com/ingussp/1st-Nesting/issues</url>
+  <url type="bugtracker">https://github.com/rubenturra/IAnesting/issues</url>
   <icon>icons/nesting_icon.png</icon>
   <freecadmin>1.0.0</freecadmin>
   <tag>nesting</tag>
@@ -19,7 +19,7 @@
   <tag>CAM</tag>
   <content>
     <workbench>
-      <name>1st Nesting</name>
+      <name>IAnesting</name>
       <classname>Nesting1stWorkbench</classname>
       <subdirectory>./</subdirectory>
       <icon>icons/nesting_icon.png</icon>

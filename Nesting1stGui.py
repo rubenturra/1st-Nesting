@@ -1,5 +1,5 @@
 from Nesting1stLanguages import tr, ui_call, ui_widget, register_window
-# UI Definition for 1st Nesting Task Panel (final)
+# UI Definition for IAnesting Task Panel (final)
 # Uses NestingRotator in Nesting1stRotate.py for rotate/flip operations
 # Integrates GrainPreparer from Nesting1stGrain.py for grain perimeter and arrows.
 import FreeCAD as App
@@ -158,7 +158,7 @@ def hide_tasks_window():
 
 
 def close_nesting_panel():
-    """Close the 1st Nesting task panel (as its Cancel button does) and the
+    """Close the IAnesting task panel (as its Cancel button does) and the
     Tasks window that held it."""
     import gc
     closed = False
@@ -753,11 +753,11 @@ class NestingTaskPanel:
                 self._thickness_checker.refresh(force=True)
             except Exception:
                 pass
-            App.Console.PrintMessage("1st Nesting: %d parts restored from %s\n" % (len(parts), name))
+            App.Console.PrintMessage("IAnesting: %d parts restored from %s\n" % (len(parts), name))
         except (RuntimeError, AttributeError):
             pass
         except Exception:
-            App.Console.PrintWarning("1st Nesting: could not restore the parts list\n" + traceback.format_exc())
+            App.Console.PrintWarning("IAnesting: could not restore the parts list\n" + traceback.format_exc())
 
     def export_nesting_result_svg(self):
         from Nesting1stResultSVG import export_from_panel
@@ -3119,7 +3119,7 @@ class NestingTaskPanel:
             if source is not None:
                 write_quantity(source, quantity)
         except Exception:
-            App.Console.PrintWarning("1st Nesting: could not store the quantity on the design part\n")
+            App.Console.PrintWarning("IAnesting: could not store the quantity on the design part\n")
 
     # Handle Qty and Rotation edits.
     def on_item_changed(self, item):
@@ -3659,7 +3659,7 @@ class NestingTaskPanel:
             self._batch_skipped = skipped
             if skipped:
                 App.Console.PrintWarning(
-                    "1st Nesting: not nested (no sheet of their thickness): %s\n"
+                    "IAnesting: not nested (no sheet of their thickness): %s\n"
                     % "; ".join(skipped))
 
             if len(batches) == 1 and not batches[0]["thickness"]:
@@ -3676,7 +3676,7 @@ class NestingTaskPanel:
             self._batch_done = []
             if len(batches) > 1:
                 App.Console.PrintMessage(
-                    "1st Nesting: %d nestings by thickness: %s\n" % (
+                    "IAnesting: %d nestings by thickness: %s\n" % (
                         len(batches), ", ".join(self._thickness_checker._dimension(b["thickness"])
                                                 for b in batches)))
             if len(batches) > 1 and parallel_thickness_enabled():
@@ -3836,7 +3836,7 @@ class NestingTaskPanel:
                 self._batch_done = []
                 if self.preview_doc_name in App.listDocuments():
                     App.setActiveDocument(self.preview_doc_name)
-                App.Console.PrintMessage("1st Nesting: " + tr('sheet_thickness.cancelled') + "\n")
+                App.Console.PrintMessage("IAnesting: " + tr('sheet_thickness.cancelled') + "\n")
                 QtGui.QMessageBox.information(self.form, tr('sheet_thickness.batch_done_title'),
                                               tr('sheet_thickness.cancelled'))
                 return
@@ -3883,7 +3883,7 @@ class NestingTaskPanel:
         self._batch_current = batch
         self._batch_part_names = set(batch["names"])
         self._batch_sheet_ids = set(batch["sheet_ids"])
-        App.Console.PrintMessage("1st Nesting: %s (%d/%d)\n" % (
+        App.Console.PrintMessage("IAnesting: %s (%d/%d)\n" % (
             self._thickness_checker._dimension(batch["thickness"]),
             self._batch_total - len(self._batch_queue), self._batch_total))
         self._start_nesting_run()
@@ -3903,7 +3903,7 @@ class NestingTaskPanel:
             self._batch_current = None
             self._batch_part_names = self._batch_sheet_ids = None
             self._batch_skipped = []
-            App.Console.PrintMessage("1st Nesting: " + tr('sheet_thickness.cancelled') + "\n")
+            App.Console.PrintMessage("IAnesting: " + tr('sheet_thickness.cancelled') + "\n")
             return
         if success and self._batch_queue:
             QtCore.QTimer.singleShot(200, self._start_next_batch)
@@ -3968,7 +3968,7 @@ class NestingTaskPanel:
             batch["document_label"] = label
             batch["sheets_used"], batch["placed"], batch["unplaced"] = batch_stats(importer.result_data)
         except Exception:
-            App.Console.PrintWarning("1st Nesting: could not rename the result document\n")
+            App.Console.PrintWarning("IAnesting: could not rename the result document\n")
 
     def isAllowedAlterDocument(self):
         # Result documents must be selectable while continuous nesting runs.
@@ -4193,7 +4193,7 @@ class NestingTaskPanel:
                                         part_obj.addProperty(
                                             "App::PropertyInteger",
                                             "GrainAngleDeg",
-                                            "1st Nesting",
+                                            "IAnesting",
                                             tr('absolute_grain_angle_in_degrees_vs_x')
                                         )
                                     except Exception:
@@ -4202,7 +4202,7 @@ class NestingTaskPanel:
                                     part_obj.GrainAngleDeg = (final_angle - previous_angles[nm]) % 360
                                     if not hasattr(part_obj, 'IPNestingCustomAngleDeg'):
                                         part_obj.addProperty('App::PropertyInteger',
-                                                             'IPNestingCustomAngleDeg', '1st Nesting')
+                                                             'IPNestingCustomAngleDeg', 'IAnesting')
                                         part_obj.setEditorMode('IPNestingCustomAngleDeg', 2)
                                     part_obj.IPNestingCustomAngleDeg = final_angle
                                 except Exception:
@@ -4312,7 +4312,7 @@ class NestingTaskPanel:
         except Exception:
             App.Console.PrintError(tr('redraw_grain_arrows_for_parts_failed') + traceback.format_exc())
             
-    # Return the 1st Nesting FreeCAD preference group, or None when unavailable.
+    # Return the IAnesting FreeCAD preference group, or None when unavailable.
     def _prefs(self):
         # helper so we can call it anywhere
         try:
