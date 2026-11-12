@@ -1948,11 +1948,27 @@ class NestingTaskPanel:
             for index, label in devices:
                 combo.addItem(label, index)
             selected = combo.findData(previous)
+            # With "Auto" (or nothing chosen yet) pick the dedicated card: the
+            # integrated Intel GPU is much slower for nesting.
+            if devices and (selected < 0 or previous == -1):
+                dedicated = [i for i, label in devices
+                             if any(k in label.upper() for k in ("NVIDIA", "AMD", "RADEON", "GEFORCE", "RTX", "QUADRO"))]
+                if dedicated:
+                    selected = combo.findData(dedicated[0])
             if selected >= 0:
                 combo.setCurrentIndex(selected)
         finally:
             combo.blockSignals(blocked)
         self._save_settings_to_prefs()
+        # Tell the user what was found (the combo alone changed silently).
+        try:
+            if devices:
+                text = tr('gpus_found') % "\n".join("  %d: %s" % (i, label) for i, label in devices)
+                QtGui.QMessageBox.information(self.form, tr('gpu'), text)
+            else:
+                QtGui.QMessageBox.warning(self.form, tr('gpu'), tr('no_gpus_found'))
+        except Exception:
+            pass
 
     def _on_gpu_enabled_changed(self, _index):
         self._update_cli_dependency_widgets()

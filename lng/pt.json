@@ -541,6 +541,8 @@
   "mark_holes_button": "Marcar furos da peça selecionada",
   "show_gpus": "Mostrar GPUs",
   "looking_for_graphic_cards": "A procurar placas gráficas",
+  "gpus_found": "Placas gráficas encontradas:\n%s\n\nFoi escolhida a placa dedicada.",
+  "no_gpus_found": "Não foi encontrada nenhuma placa gráfica utilizável para o nesting.",
   "nesting_wait_continuous_cancel_s": "As peças são posicionadas sem limite de tempo. Prima «%s» para interromper o processo.",
   "default_rotations": "Orientações predefinidas:",
   "default_rotations_tooltip": "Número de orientações testadas para cada nova peça. Mais orientações podem melhorar a disposição, mas aumentam o tempo de cálculo.",
