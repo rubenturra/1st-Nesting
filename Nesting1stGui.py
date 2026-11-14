@@ -191,6 +191,65 @@ def batch_stats(result_data):
     return len(sheets), int(placed or 0), int(unplaced or 0)
 
 
+def _bend_lines(target):
+    """Líneas de pliegue de una pieza desplegada en «Plegado de chapa»
+    (croquis «..._Sketch_Bends» del mismo documento que caen sobre la pieza),
+    llevadas a la cara de arriba. Mecanizar plasma las marca antes de cortar."""
+    try:
+        import Part
+        shape = target.Shape
+        if shape.isNull() or not shape.Solids:
+            return []
+        out = []
+        for o in target.Document.Objects:
+            name = (o.Name + " " + o.Label).lower()
+            if "sketch_bends" not in name or not hasattr(o, "Shape") or o.Shape.isNull():
+                continue
+            edges = [e for e in o.Shape.Edges if e.BoundBox.ZLength < 1e-6]
+            if not edges or len(edges) != len(o.Shape.Edges):
+                continue
+            if any(shape.distToShape(Part.Vertex(e.valueAt((e.FirstParameter + e.LastParameter) / 2)))[0] > 0.1
+                   for e in edges):
+                continue
+            ztop = shape.BoundBox.ZMax
+            for e in edges:
+                c = e.copy()
+                c.translate(App.Vector(0, 0, ztop - c.BoundBox.ZMin))
+                out.append(c)
+        return out
+    except Exception as exc:
+        App.Console.PrintLog("IAnesting: líneas de pliegue: %s\n" % exc)
+        return []
+
+
+def _add_bend_lines(new_obj, target):
+    """La copia para anidar lleva también las líneas de pliegue (aristas
+    sueltas): llegan al resultado del anidado y Mecanizar plasma las marca."""
+    try:
+        import Part
+        if getattr(new_obj, "TypeId", "") != "Part::Feature":
+            return 0
+        bends = _bend_lines(target)
+        if not bends:
+            return 0
+        pl = new_obj.Placement
+        base = new_obj.Shape.copy()
+        base.Placement = App.Placement()
+        inv = pl.inverse().toMatrix()
+        local = []
+        for e in bends:
+            c = e.copy()
+            c.transformShape(inv)
+            local.append(c)
+        new_obj.Shape = Part.makeCompound([base] + local)
+        new_obj.Placement = pl
+        App.Console.PrintMessage("IAnesting: %s lleva %d líneas de pliegue para marcar\n" % (new_obj.Label, len(local)))
+        return len(local)
+    except Exception as exc:
+        App.Console.PrintLog("IAnesting: líneas de pliegue: %s\n" % exc)
+        return 0
+
+
 class NestingTaskPanel:
     # Nesting CLI settings exposed in the right-hand column, mapped to their
     # preference keys and defaults. "text" entries are QLineEdit fields, "combo"
@@ -2848,6 +2907,7 @@ class NestingTaskPanel:
 
                     from Nesting1stQuantity import remember_source, read_quantity
                     remember_source(new_obj, target)
+                    _add_bend_lines(new_obj, target)
                     design_quantity = read_quantity(target)
                     
                     # --- FIX: PartDesign::Body in preview may have invalid Shape/BoundBox; use Tip.Shape as fallback ---
