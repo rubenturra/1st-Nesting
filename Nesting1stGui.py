@@ -1861,14 +1861,30 @@ class NestingTaskPanel:
         self.gpu_device_label = ui_widget(QtGui.QLabel, tr('gpu_device'))
         self.gpu_device_combo = QtGui.QComboBox()
         self.gpu_device_combo.addItem("Auto", -1)
+        # El nombre de la tarjeta es largo: el desplegable se encoge con la
+        # ventana (el nombre completo sale al abrirlo y en la ayuda) para que
+        # los demás controles no se queden ocultos a la derecha.
+        try:
+            self.gpu_device_combo.setSizeAdjustPolicy(
+                QtGui.QComboBox.AdjustToMinimumContentsLengthWithIcon)
+            self.gpu_device_combo.setMinimumContentsLength(8)
+            self.gpu_device_combo.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Fixed)
+            self.gpu_device_combo.currentIndexChanged.connect(
+                lambda _i: self.gpu_device_combo.setToolTip(self.gpu_device_combo.currentText()))
+        except Exception:
+            pass
         ui_call(self.gpu_device_combo, 'setToolTip', tr('gpu_device_tooltip'))
         ui_call(self.gpu_device_label, 'setToolTip', tr('gpu_device_tooltip'))
         gpu_device_row.addWidget(self.gpu_device_label)
-        gpu_device_row.addWidget(self.gpu_device_combo)
+        gpu_device_row.addWidget(self.gpu_device_combo, 1)
+        lay.addLayout(gpu_device_row)
+        # «Mostrar GPU» en su propia fila (al lado no cabía con la ventana estrecha)
         self.show_gpus_btn = ui_widget(QtGui.QPushButton, tr('show_gpus'))
         self.show_gpus_btn.clicked.connect(self._show_gpus)
-        gpu_device_row.addWidget(self.show_gpus_btn)
-        lay.addLayout(gpu_device_row)
+        gpu_btn_row = QtGui.QHBoxLayout()
+        gpu_btn_row.addStretch(1)
+        gpu_btn_row.addWidget(self.show_gpus_btn)
+        lay.addLayout(gpu_btn_row)
 
         if isinstance(cfg_grid, QtGui.QGridLayout):
             cfg_grid.addWidget(box, 1, 1, 2, 1)
