@@ -365,6 +365,11 @@ class NestingTaskPanel:
             area.setWidgetResizable(True)
             area.setFrameShape(QtGui.QFrame.NoFrame)
             area.setWidget(page)
+            if page is setup_page:
+                # Setup se ajusta al ancho del panel: sin barra horizontal, los
+                # desplegables se encogen y nada queda oculto a la derecha.
+                area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+                page.setMinimumWidth(0)
             self.tabs.addTab(area, "")
         self._fit_timer = QtCore.QTimer(self.form)
         self._fit_timer.timeout.connect(self._fit_to_task_view)
@@ -560,6 +565,7 @@ class NestingTaskPanel:
         self._build_nesting_cli_settings(self.setup_layout)
         self.setup_layout.addWidget(cpu_box)
         self.setup_layout.addStretch(1)
+        self._shrink_setup_widgets(setup_page)
 
         # Table (with control_rows at the bottom)
         self.layout.addWidget(ui_widget(QtGui.QLabel, tr('b_selected_parts_preview_mode_b')))
@@ -1805,6 +1811,23 @@ class NestingTaskPanel:
         return combo
 
     # Build the nesting CLI settings group box shown under the Units selector.
+    def _shrink_setup_widgets(self, page):
+        """Que los controles de Setup quepan en un panel estrecho."""
+        try:
+            for cb in page.findChildren(QtGui.QComboBox):
+                cb.setSizeAdjustPolicy(QtGui.QComboBox.AdjustToMinimumContentsLengthWithIcon)
+                cb.setMinimumContentsLength(6)
+                cb.setMinimumWidth(60)
+                cb.setSizePolicy(QtGui.QSizePolicy.Expanding, cb.sizePolicy().verticalPolicy())
+            for sp in page.findChildren(QtGui.QAbstractSpinBox):
+                sp.setMinimumWidth(50)
+                sp.setSizePolicy(QtGui.QSizePolicy.Expanding, sp.sizePolicy().verticalPolicy())
+            for lb in page.findChildren(QtGui.QLabel):
+                if lb.text() and len(lb.text()) > 30:
+                    lb.setWordWrap(True)
+        except Exception as e:
+            App.Console.PrintLog("Setup: %s\n" % e)
+
     def _build_nesting_cli_settings(self, cfg_grid):
         box = ui_widget(
             QtGui.QGroupBox, tr('nesting_cli_settings')
