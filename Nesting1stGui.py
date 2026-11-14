@@ -4602,6 +4602,10 @@ class NestingTaskPanel:
         p = self._prefs()
         if not p:
             return
+        # Mientras se cargan los ajustes no se guarda nada: si no, al poner el
+        # primer desplegable se guardaban los demás aún sin cargar (p. ej. la
+        # GPU volvía a «No» y el dispositivo a «Auto»).
+        self._loading_settings = True
         try:
             # block signals while setting values
             widgets = [
@@ -4758,7 +4762,10 @@ class NestingTaskPanel:
                 saved_gpu_device = int(p.GetInt("GpuDevice", -1))
                 index = self.gpu_device_combo.findData(saved_gpu_device)
                 if index < 0 and saved_gpu_device >= 0:
-                    self.gpu_device_combo.addItem("GPU %d" % saved_gpu_device, saved_gpu_device)
+                    label = p.GetString("GpuDeviceLabel", "") or ("GPU %d" % saved_gpu_device)
+                    if label == "Auto":
+                        label = "GPU %d" % saved_gpu_device
+                    self.gpu_device_combo.addItem(label, saved_gpu_device)
                     index = self.gpu_device_combo.findData(saved_gpu_device)
                 if index >= 0:
                     self.gpu_device_combo.setCurrentIndex(index)
@@ -4767,6 +4774,7 @@ class NestingTaskPanel:
 
 
         finally:
+            self._loading_settings = False
             for w in widgets:
                 try:
                     w.blockSignals(False)
@@ -4776,6 +4784,8 @@ class NestingTaskPanel:
     
     # Persist canonical dimensions, display units and CPU selection.
     def _save_settings_to_prefs(self):
+        if getattr(self, "_loading_settings", False):
+            return
         p = self._prefs()
 
         if not p:
@@ -4847,6 +4857,7 @@ class NestingTaskPanel:
             try:
                 gpu_device = self.gpu_device_combo.currentData()
                 p.SetInt("GpuDevice", int(gpu_device if gpu_device is not None else -1))
+                p.SetString("GpuDeviceLabel", str(self.gpu_device_combo.currentText()))
             except Exception:
                 pass
 
